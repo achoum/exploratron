@@ -4,11 +4,9 @@
 
 ![](docs/game.gif)
 
-Precompiled releases are available in:
+Exploration is compatible with Linux, Windows and Web browser (using Webassembly).
 
-- [Web browser]()
-- [Windows]()
-- [Linux]()
+You can play the Web browser version [here](https://achoum.github.io/exploratron).
 
 ## Compilation from source
 
