@@ -1,0 +1,33 @@
+common --experimental_repo_remote_exec
+
+build --announce_rc
+build --noincompatible_strict_action_env
+
+build --spawn_strategy=standalone
+build --announce_rc
+build --noincompatible_strict_action_env
+
+build:linux --color=yes
+build:linux --copt=-fdiagnostics-color=always
+build:linux --cxxopt=-std=c++17
+build:linux --host_cxxopt=-std=c++17
+
+build:macos --color=yes
+build:macos --cxxopt=-std=c++17
+build:macos --host_cxxopt=-std=c++17
+
+build:windows_clang --cxxopt=/std:c++17
+build:windows_vs --cxxopt=/std:c++17
+
+build:wasm --crosstool_top=//emscripten_toolchain:everything
+build:wasm --host_crosstool_top=@bazel_tools//tools/cpp:toolchain
+build:wasm --cpu=wasm
+build:wasm --copt=-pthread
+build:wasm --config=linux
+
+build:wasm --copt=-Wno-narrowing
+build:wasm --copt=-Wno-c99-designator
+build:wasm --copt=-Wno-switch
+build:wasm --host_copt=-Wno-narrowing
+build:wasm --host_copt=-Wno-c99-designator
+build:wasm --host_copt=-Wno-switch

@@ -1,0 +1,7 @@
+
+bazel-bin
+bazel-exploratron
+bazel-out
+bazel-testlogs
+.vscode/c_cpp_properties.json
+.vscode/settings.json

@@ -1,0 +1,126 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+    // --config=windows_clang --compiler=clang-cl
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "build genetic train_main",
+            "type": "shell",
+            "command": "bazel build -c dbg //controller/genetic:train_main --config=windows_vs",
+            "problemMatcher": {
+                "base": "$msCompile",
+                "fileLocation": [
+                    "relative",
+                    "${workspaceRoot}"
+                ]
+            },
+            "group": {
+                "kind": "build",
+            },
+            "presentation": {
+                "clear": true
+            }
+        },
+        {
+            "label": "run genetic train_main",
+            "type": "shell",
+            "command": "bazel",
+            "args": [
+                "run",
+                "//controller/genetic:train_main",
+                "--config=windows_vs"
+            ],
+            "problemMatcher": {
+                "base": "$msCompile",
+                "fileLocation": [
+                    "relative",
+                    "${workspaceRoot}"
+                ]
+            },
+            "group": {
+                "kind": "test",
+            },
+            "presentation": {
+                "clear": true
+            }
+        },
+        {
+            "label": "run random evaluate",
+            "type": "shell",
+            "command": "bazel",
+            "args": [
+                "run",
+                "//exploratron/cli:evaluate_main",
+                "--config=windows_vs"
+            ],
+            "problemMatcher": {
+                "base": "$msCompile",
+                "fileLocation": [
+                    "relative",
+                    "${workspaceRoot}"
+                ]
+            },
+            "group": {
+                "kind": "test",
+            },
+            "presentation": {
+                "clear": true
+            }
+        },
+        {
+            "label": "build game",
+            "type": "shell",
+            "command": "bazel",
+            "args": [
+                "build",
+                "-c",
+                "dbg",
+                "//exploratron/cli:game",
+                "--config=windows_vs",
+                "--define=terminal=windows_console",
+            ],
+            "problemMatcher": {
+                "base": "$msCompile",
+                "fileLocation": [
+                    "relative",
+                    "${workspaceRoot}"
+                ]
+            },
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "presentation": {
+                "clear": true
+            }
+        },
+        {
+            "label": "run game",
+            "type": "shell",
+            "command": "bazel",
+            "args": [
+                "run",
+                "-c",
+                "dbg",
+                "//exploratron/cli:game",
+                "--config=windows_vs",
+                "--define=terminal=windows_console",
+            ],
+            "problemMatcher": {
+                "base": "$msCompile",
+                "fileLocation": [
+                    "relative",
+                    "${workspaceRoot}"
+                ]
+            },
+            "group": {
+                "kind": "test",
+                "isDefault": true
+            },
+            "presentation": {
+                "clear": true
+            }
+        }
+    ]
+}
