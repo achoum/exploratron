@@ -55,21 +55,21 @@ FLAG="--config=linux --define=terminal=linux_console"
 # MODE="-c dbg"
 MODE="-c opt"
 
-// Run the evaluation on the "Gather" area using the Random controler (no leaning).
+# Run the evaluation on the "Gather" area using the Random controler (no leaning).
 bazel run $MODE --config=linux --define=terminal=linux_console //exploratron/cli:evaluate_main $FLAG -- \
     --arena=Gather --controller_key=Random --num_repetitions=100
 
-// Train and evaluate a genetic controller on the "Gather" area.
-// Hyper-parameters are available in `exploratron/controller/genetic/genetic.h`
+# Train and evaluate a genetic controller on the "Gather" area.
+# Hyper-parameters are available in `exploratron/controller/genetic/genetic.h`
 bazel run $MODE --config=linux //exploratron/controller/genetic:train_main $FLAG -- \
     --training_log_base=${LOGDIR}/gather/genetic/r1_
 
-// Train and evaluate a hill climbing controller on the "Gather" area.
-// Hyper-parameters are available in `exploratron/controller/hill_climb/hill_climb.h`
+# Train and evaluate a hill climbing controller on the "Gather" area.
+# Hyper-parameters are available in `exploratron/controller/hill_climb/hill_climb.h`
 bazel run $MODE --config=linux //exploratron/controller/hill_climbing:train_main $FLAG -- \
     --training_log_base=${LOGDIR}/gather/hill_climb/r1_
 
-// Run the evaluation on the "Gather" area using the keyboard controler (no leaning).
+# Run the evaluation on the "Gather" area using the keyboard controler (no leaning).
 bazel run $MODE --config=linux //exploratron/cli:evaluate_main $FLAG -- \
     --arena=Gather --controller_key=Keyboard
 ```

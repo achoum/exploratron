@@ -3,5 +3,6 @@ bazel-bin
 bazel-exploratron
 bazel-out
 bazel-testlogs
+compiled_web_game
 .vscode/c_cpp_properties.json
 .vscode/settings.json
