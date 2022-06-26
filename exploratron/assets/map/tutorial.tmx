@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.8" tiledversion="1.8.5" orientation="orthogonal" renderorder="right-down" width="80" height="40" tilewidth="16" tileheight="16" infinite="0" nextlayerid="4" nextobjectid="1">
+<map version="1.8" tiledversion="1.8.5" orientation="orthogonal" renderorder="right-down" width="80" height="40" tilewidth="16" tileheight="16" infinite="0" nextlayerid="5" nextobjectid="14">
  <editorsettings>
   <export target="ant_2.csv" format="csv"/>
  </editorsettings>
@@ -136,4 +136,66 @@
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 </data>
  </layer>
+ <objectgroup id="4" name="messages">
+  <object id="1" gid="64" x="144" y="96" width="16" height="16">
+   <properties>
+    <property name="message" value="Soft walls can be broken with your\npunch."/>
+   </properties>
+  </object>
+  <object id="3" gid="64" x="432" y="96" width="16" height="16">
+   <properties>
+    <property name="message" value="Pick an explosive and throw it (x)\nagainst the wall on the right.\nThen, keep your distance."/>
+   </properties>
+  </object>
+  <object id="4" gid="64" x="576" y="96" width="16" height="16">
+   <properties>
+    <property name="message" value="Individually, ants are weak and\ncan be defeated with your punch\n(arrows)."/>
+   </properties>
+  </object>
+  <object id="5" gid="64" x="720" y="208" width="16" height="16">
+   <properties>
+    <property name="message" value="Fungi are inoffensive and burn\nwell. Release and set them on\nfire (b)."/>
+   </properties>
+  </object>
+  <object id="6" gid="64" x="384" y="208" width="16" height="16">
+   <properties>
+    <property name="message" value="Ants attack on sight, but they are\ndistracted by food (f) (if you are\nnot visible). They also communicate\nwith each other with pheromones.\nSneak around the next ant."/>
+   </properties>
+  </object>
+  <object id="7" gid="64" x="144" y="208" width="16" height="16">
+   <properties>
+    <property name="message" value="There are too many ants to fight\nwith your punch. Find another\nway to kill them."/>
+   </properties>
+  </object>
+  <object id="8" gid="64" x="272" y="304" width="16" height="16">
+   <properties>
+    <property name="message" value="Cheater cheater, pants on fire!"/>
+   </properties>
+  </object>
+  <object id="9" gid="64" x="288" y="304" width="16" height="16">
+   <properties>
+    <property name="message" value="Cheater cheater, pants on fire!"/>
+   </properties>
+  </object>
+  <object id="10" gid="64" x="304" y="304" width="16" height="16">
+   <properties>
+    <property name="message" value="Cheater cheater, pants on fire!"/>
+   </properties>
+  </object>
+  <object id="11" gid="64" x="320" y="304" width="16" height="16">
+   <properties>
+    <property name="message" value="Cheater cheater, pants on fire!"/>
+   </properties>
+  </object>
+  <object id="12" gid="64" x="336" y="304" width="16" height="16">
+   <properties>
+    <property name="message" value="Cheater cheater, pants on fire!"/>
+   </properties>
+  </object>
+  <object id="13" gid="64" x="288" y="96" width="16" height="16">
+   <properties>
+    <property name="message" value="Use the help key (h) to list\nthe symbols/entities."/>
+   </properties>
+  </object>
+ </objectgroup>
 </map>

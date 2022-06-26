@@ -4,7 +4,9 @@
 #include <sstream>
 
 #include "absl/strings/str_cat.h"
+#include "absl/strings/str_format.h"
 #include "absl/strings/str_replace.h"
+#include "absl/strings/str_split.h"
 #include "exploratron/core/utils/terminal.h"
 
 namespace exploratron {
@@ -346,7 +348,8 @@ void AbstractGameArena::Draw() const {
   } else {
     terminal::DrawString(ui_x + offset_content, ui_y++, "You are dead",
                          terminal::eColor::RED);
-    terminal::DrawString(ui_x + offset_content, ui_y++, "Press q to quit",
+    terminal::DrawString(ui_x + offset_content, ui_y++,
+                         "Press r to reset, or press q to quit",
                          terminal::eColor::RED);
   }
 
@@ -357,7 +360,11 @@ void AbstractGameArena::Draw() const {
   for (int i = 0; i < to_display; i++) {
     int idx = logs_.size() + i - to_display;
     if (idx >= 0) {
-      terminal::DrawString(ui_x + offset_content, ui_y++, logs_[idx]);
+      const auto color = (logs_[idx].first >= map_->time())
+                             ? terminal::eColor::RED
+                             : terminal::eColor::WHITE;
+      terminal::DrawString(ui_x + offset_content, ui_y++, logs_[idx].second,
+                           color);
     } else {
       ui_y++;
     }
@@ -365,14 +372,25 @@ void AbstractGameArena::Draw() const {
 
   // Keys.
   ui_y++;
-  terminal::DrawTitleBar(ui_x, ui_y++, 20, "Keys", terminal::eColor::BLUE);
-  terminal::DrawString(ui_x + offset_content, ui_y++, "arrows: move");
-  terminal::DrawString(ui_x + offset_content, ui_y++, "a: action");
+  terminal::DrawTitleBar(ui_x, ui_y++, 20, "Actions", terminal::eColor::BLUE);
+
+  terminal::DrawString(ui_x + offset_content, ui_y++, "arrows: move / punch");
+
+  // terminal::DrawString(ui_x + offset_content, ui_y++, "a: action");
   terminal::DrawString(ui_x + offset_content, ui_y++, "space: wait");
   terminal::DrawString(ui_x + offset_content, ui_y, "h",
                        terminal::eColor::YELLOW);
   terminal::DrawString(ui_x + offset_content + 1, ui_y++, ": help");
+  terminal::DrawString(ui_x + offset_content, ui_y++, "r: reset");
   terminal::DrawString(ui_x + offset_content, ui_y++, "q: quit");
+  ui_y++;
+  if (!contolled.empty()) {
+    const auto actions = contolled.front()->AvailableMagics();
+    for (const auto &a : actions) {
+      terminal::DrawString(ui_x + offset_content, ui_y++,
+                           absl::StrFormat("%c: %s", a.shortcut, a.label));
+    }
+  }
 }
 
 std::optional<Vector2i> Map::RandomNonOccupiedCell(std::mt19937_64 *rnd) const {
@@ -454,6 +472,14 @@ bool Entity::Hurt(int amount, std::shared_ptr<Entity> emiter,
   }
 
   return died;
+}
+
+void AbstractGameArena::AddLog(std::string log) {
+  std::vector<std::string> lines = absl::StrSplit(log, '\n');
+  auto time = map_ ? map_->time() : 0;
+  for (const auto &line : lines) {
+    logs_.push_back({time, line});
+  }
 }
 
 void Map::AddLog(std::string log) { parent_->AddLog(log); }

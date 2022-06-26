@@ -10,21 +10,21 @@ You can play the Web browser version [here](https://achoum.github.io/exploratron
 
 ## Compilation from source
 
-Requires *Bazel*.
+Requires _Bazel_.
 
-On Web browser: 
+On Web browser:
 
 ```shell
 ./tools/game_wasm.sh
 ```
 
-On Linux: 
+On Linux:
 
 ```shell
 ./tools/game_terminal.sh
 ```
 
-On Windows: 
+On Windows:
 
 ```shell
 tools\game_terminal.bat

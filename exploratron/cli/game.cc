@@ -21,7 +21,7 @@
 
 namespace exploratron {
 
-constexpr char kVersion[] = "0.1";
+constexpr char kVersion[] = "0.2";
 
 struct MapInfo {
   std::string path;
@@ -46,6 +46,7 @@ enum class eControls {
   QUIT,
   ENTER,
   HELP,
+  RESET,
 };
 
 eDirection ControlToDirection(const eControls a) {
@@ -86,6 +87,7 @@ eControls KeyToControl(int key) {
     return eControls::ACTION;
 
   case '\n':
+  case '\r':
     return eControls::ENTER;
 
   case 'h':
@@ -96,11 +98,15 @@ eControls KeyToControl(int key) {
   case 'q':
     return eControls::QUIT;
 
+  case 'r':
+    return eControls::RESET;
+
   default:
     return eControls::UNKNOWN;
   }
 }
 
+/*
 std::optional<abstract_game_area::Action>
 SelectMagic(abstract_game_area::AbstractGameArena *game,
             std::shared_ptr<abstract_game_area::Entity> controlled) {
@@ -131,7 +137,7 @@ SelectMagic(abstract_game_area::AbstractGameArena *game,
       }
     }
   }
-}
+}*/
 
 std::optional<Vector2i>
 SelectTarget(abstract_game_area::AbstractGameArena *game, Vector2i pos,
@@ -142,12 +148,24 @@ SelectTarget(abstract_game_area::AbstractGameArena *game, Vector2i pos,
     // Display
     terminal::ClearScreen();
     game->Draw();
+    bool hit = false;
     game->map().IterateLine(pos, target, [&](const Vector2i &p) {
       if (p != pos) {
-        terminal::DrawSymbol(p.x, p.y, 256 + 3, terminal::eColor::RED);
+
+        auto &cell = game->map().cell(p);
+        if (cell.HasTag(common_game::Tag::WALL_LIKE)) {
+          hit = true;
+        }
+
+        terminal::DrawSymbol(p.x, p.y, 256 + 3,
+                             hit ? terminal::eColor::RED
+                                 : terminal::eColor::GREEN);
       }
       return true;
     });
+    terminal::DrawString(0, 0,
+                         "Select target with a/enter. Cancel with q/escape.",
+                         terminal::eColor::YELLOW);
     terminal::RefreshScreen();
 
     // Get next control
@@ -221,9 +239,10 @@ void ShowHelp() {
     terminal::DrawSymbol(ui_x, ui_y, display.symbol.symbol_,
                          display.symbol.color);
     terminal::DrawString(ui_x + 1, ui_y++,
-                         absl::StrFormat(" %s. %s (%d)", display.entity->Name(),
-                                         display.entity->status(),
-                                         display.symbol.priotity_));
+                         absl::StrFormat(" %s. %s", display.entity->Name(),
+                                         display.entity->status()));
+    // (%d)
+    //  display.symbol.priotity_
   }
 
   terminal::DrawString(ui_x, ui_y++, "=============");
@@ -268,7 +287,7 @@ void PrintFinalScreen(abstract_game_area::AbstractGameArena *game) {
   }
 }
 
-void RunArea(const MapInfo &map) {
+bool RunArea(const MapInfo &map) {
   const auto arena_builder = AbstractArenaBuilderRegisterer::Create("Ant");
   buffer::BufferInput buffer_input;
   const auto controller_builder =
@@ -289,10 +308,53 @@ void RunArea(const MapInfo &map) {
     area->Draw();
     terminal::RefreshScreen();
 
+    // Get next action
+    Output action;
+    bool has_action = false;
+
     // Get next control
-    eControls control;
+    eControls control = eControls::NONE;
     while (true) {
       const auto key = terminal::GetPressedKey();
+
+      // Actions
+      bool match = false;
+      auto all_controlled = game->map().ControlledEntities();
+      if (!all_controlled.empty()) {
+        auto controlled = all_controlled.front();
+        const auto actions = controlled->AvailableMagics();
+        for (const auto &a : actions) {
+          if (a.shortcut == key) {
+            match = true;
+
+            if (a.target_radius > 0) {
+              auto target =
+                  SelectTarget(game, controlled->position(),
+                               common_game::Tag::NON_PASSABLE, a.target_radius);
+              if (!target.has_value()) {
+                break; // Cancel
+              }
+              action.action = eAction::MAGIC;
+              action.magic_idx = a.idx;
+              action.target = target.value();
+              has_action = true;
+              break;
+
+            } else {
+              action.action = eAction::MAGIC;
+              action.magic_idx = a.idx;
+              has_action = true;
+              break;
+            }
+
+            break;
+          }
+        }
+      }
+      if (match) {
+        break;
+      }
+
       control = KeyToControl(key);
       if (control == eControls::UNKNOWN) {
         continue;
@@ -300,12 +362,12 @@ void RunArea(const MapInfo &map) {
       break;
     }
 
-    // Get next action
-    Output action;
-    bool has_action = false;
     switch (control) {
     case eControls::QUIT:
-      return;
+      return false;
+
+    case eControls::RESET:
+      return true;
 
     case eControls::WAIT:
     case eControls::UP:
@@ -317,38 +379,40 @@ void RunArea(const MapInfo &map) {
       has_action = true;
       break;
 
-    case eControls::ACTION: {
-      // Link to player entity.
-      auto all_controlled = game->map().ControlledEntities();
-      if (all_controlled.empty()) {
-        break;
-      }
-      auto controlled = all_controlled.front();
-      const auto magic_action = SelectMagic(game, controlled);
-      if (!magic_action.has_value()) {
-        break; // Cancel
-      }
-
-      if (magic_action.value().target_radius > 0) {
-        auto target = SelectTarget(game, controlled->position(),
-                                   common_game::Tag::NON_PASSABLE,
-                                   magic_action.value().target_radius);
-        if (!target.has_value()) {
+      /*
+      case eControls::ACTION: {
+        // Link to player entity.
+        auto all_controlled = game->map().ControlledEntities();
+        if (all_controlled.empty()) {
+          break;
+        }
+        auto controlled = all_controlled.front();
+        const auto magic_action = SelectMagic(game, controlled);
+        if (!magic_action.has_value()) {
           break; // Cancel
         }
-        action.action = eAction::MAGIC;
-        action.magic_idx = magic_action.value().idx;
-        action.target = target.value();
-        has_action = true;
-        break;
 
-      } else {
-        action.action = eAction::MAGIC;
-        action.magic_idx = magic_action.value().idx;
-        has_action = true;
-        break;
-      }
-    } break;
+        if (magic_action.value().target_radius > 0) {
+          auto target = SelectTarget(game, controlled->position(),
+                                     common_game::Tag::NON_PASSABLE,
+                                     magic_action.value().target_radius);
+          if (!target.has_value()) {
+            break; // Cancel
+          }
+          action.action = eAction::MAGIC;
+          action.magic_idx = magic_action.value().idx;
+          action.target = target.value();
+          has_action = true;
+          break;
+
+        } else {
+          action.action = eAction::MAGIC;
+          action.magic_idx = magic_action.value().idx;
+          has_action = true;
+          break;
+        }
+      } break;
+      */
 
     case eControls::HELP:
       ShowHelp();
@@ -376,6 +440,7 @@ void RunArea(const MapInfo &map) {
   terminal::ClearScreen();
   area->Draw();
   terminal::RefreshScreen();
+  return false;
 }
 
 std::vector<MapInfo> ListMaps() {
@@ -414,20 +479,32 @@ std::optional<MapInfo> SelectMap(int selection) {
                          terminal::eColor::GRAY);
     terminal::DrawString(ui_x, ui_y++, "  by Mathieu Guillame-Bert",
                          terminal::eColor::GRAY);
-    int tmp = ui_x;
-    tmp +=
-        terminal::DrawString(tmp, ui_y, "  https://", terminal::eColor::GRAY);
-    tmp += terminal::DrawString(tmp, ui_y, "achoum.github.io",
-                                terminal::eColor::BLUE);
-    ui_y++;
+    int tmp;
+    {
+      tmp = ui_x;
+      tmp +=
+          terminal::DrawString(tmp, ui_y, "  https://", terminal::eColor::GRAY);
+      tmp += terminal::DrawString(tmp, ui_y, "github.com/achoum/exploratron",
+                                  terminal::eColor::BLUE);
+      ui_y++;
+    }
+
+    {
+      tmp = ui_x;
+      tmp +=
+          terminal::DrawString(tmp, ui_y, "  https://", terminal::eColor::GRAY);
+      tmp += terminal::DrawString(tmp, ui_y, "achoum.github.io",
+                                  terminal::eColor::BLUE);
+      ui_y++;
+    }
 
     ui_y++;
 
     terminal::DrawString(
         ui_x, ui_y++,
-        "Reach the exit (>) quickly and without loosing health (hp).");
+        "Reach the exit stairs (>) quickly and without loosing health (hp).");
     terminal::DrawString(ui_x, ui_y++,
-                         "Use your surouding and actions (a) to survive.");
+                         "Be smart and use your surrounding to survive.");
     ui_y++;
 
     terminal::DrawString(ui_x, ui_y++, "Select a world:");
@@ -526,7 +603,12 @@ void Main() {
     selected_map = map_info.value().idx;
 
     // Play map
-    RunArea(map_info.value());
+    while (true) {
+      const auto reset = RunArea(map_info.value());
+      if (!reset) {
+        break;
+      }
+    }
   }
 }
 

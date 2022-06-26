@@ -11,7 +11,10 @@ function terminal_output(text) {
 
 document.onkeydown = function(evt) {
   evt = evt || window.event;
-  //console.log('Receive key:', evt);
+  // console.log('Receive key:', evt);
+  if (evt.ctrlKey) {
+    return;
+  }
   if (evt.key.length == 1) {
     keys.push(evt.key.charCodeAt(0));
   } else {
@@ -31,7 +34,7 @@ function next_key() {
     return -1;
   }
   let key = keys.shift();
-  //console.log('Send key', keys, '=', key);
+  // console.log('Send key', keys, '=', key);
   return key;
 }
 

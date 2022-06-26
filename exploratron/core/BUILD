@@ -19,6 +19,7 @@ cc_library(
         "//exploratron/core/utils:register",
         "//exploratron/core/utils:terminal",
         "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/strings:str_format",
     ],
 )
 

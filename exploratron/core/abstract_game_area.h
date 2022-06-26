@@ -180,13 +180,13 @@ public:
   void Draw() const override;
   void Initialize(Vector2i size);
   void AddEntity(const Vector2i &pos, std::shared_ptr<Entity> entity);
-  void AddLog(std::string log) { logs_.push_back(log); }
+  void AddLog(std::string log);
   Map &map() { return *map_; }
 
   Scores FinalScore() const override { return {0}; }
   std::unique_ptr<Map> map_;
   std::unique_ptr<AbstractController> controller_;
-  std::vector<std::string> logs_;
+  std::vector<std::pair<int, std::string>> logs_;
 
 private:
 };
@@ -200,11 +200,11 @@ inline std::unordered_map<int, EntityDef> global_registered_entities;
 #define REGISTER_ENTITY(X)                                                     \
   inline struct Register##X {                                                  \
     Register##X() {                                                            \
-      ::exploratron::abstract_game_area::EntityDef def;              \
+      ::exploratron::abstract_game_area::EntityDef def;                        \
       def.builder = []() -> std::shared_ptr<Entity> {                          \
         return std::make_shared<X>();                                          \
       };                                                                       \
-      ::exploratron::abstract_game_area::global_registered_entities  \
+      ::exploratron::abstract_game_area::global_registered_entities            \
           [def.builder()->type()] = def;                                       \
     }                                                                          \
   } register_##X;

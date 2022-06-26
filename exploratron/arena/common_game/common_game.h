@@ -52,6 +52,11 @@ enum EntityType : int {
   EXPLOSIVE_BAREL = 21,
   WIRE = 22,
   PROXY = 23,
+  MESSAGE = 24,
+  TURRET = 25,
+  ROBOT = 26,
+  GOLIAT = 27,
+  LASER = 28,
 };
 
 enum Tag {
@@ -99,6 +104,8 @@ enum Tag {
   CAN_ACTION_BUTTON_ON_CONVEYOR_BELT,
   // Will be hurted by a door closed on it.
   KILLED_BY_AUTOMATIC_METAL_DOOR,
+  // Targeted by robots
+  ROBOT_TARGET,
 };
 
 class UnbreakableWall : public Entity {
@@ -233,6 +240,7 @@ public:
         Tag::CAN_ACTION_BUTTON_ON_CONVEYOR_BELT,
         Tag::TRIGGER_PROXY_SENSOR,
         Tag::KILLED_BY_AUTOMATIC_METAL_DOOR,
+        Tag::ROBOT_TARGET,
     };
   }
   void Step(Output action, std::shared_ptr<Entity> me, Map *map) override;
@@ -273,6 +281,7 @@ public:
         Tag::CAN_ACTION_BUTTON_ON_CONVEYOR_BELT,
         Tag::TRIGGER_PROXY_SENSOR,
         Tag::KILLED_BY_AUTOMATIC_METAL_DOOR,
+        Tag::ROBOT_TARGET,
     };
   }
   void Step(Output action, std::shared_ptr<Entity> me, Map *map) override;
@@ -319,6 +328,7 @@ public:
         Tag::FUNGUS_TARGET,        Tag::FIRE_TARGET,
         Tag::EXPLOSION_TARGET,     Tag::MOVED_BY_CONVEYOR_BELT,
         Tag::TRIGGER_PROXY_SENSOR, Tag::KILLED_BY_AUTOMATIC_METAL_DOOR,
+        Tag::ROBOT_TARGET,
     };
   }
   void Step(Output action, std::shared_ptr<Entity> me, Map *map) override;
@@ -413,7 +423,7 @@ REGISTER_ENTITY(Food);
 class ExitDoor : public Entity {
 public:
   int type() const override { return EntityType::EXIT_DOOR; }
-  std::string Name() const override { return "exit door"; }
+  std::string Name() const override { return "exit stairs"; }
   DisplaySymbol Display() const override {
     return DisplaySymbol{'>', 10, .color = terminal::eColor::GREEN};
   }
@@ -578,14 +588,151 @@ private:
 };
 REGISTER_ENTITY(ProxySensor);
 
+class Message : public Entity {
+public:
+  Message() {}
+  Message(const std::string &message) : message_(message) {}
+  int type() const override { return EntityType::MESSAGE; }
+  std::string Name() const override { return "message"; }
+  DisplaySymbol Display() const override { return DisplaySymbol{'?', 0}; }
+  std::vector<int> Tags() const override {
+    return {Tag::MOVED_BY_CONVEYOR_BELT};
+  }
+  const std::string &message() const { return message_; }
+  void Step(Output action, std::shared_ptr<Entity> me, Map *map) override;
+
+private:
+  std::vector<int> last_entity_ids_;
+  std::string message_;
+};
+REGISTER_ENTITY(Message);
+
+class Turret : public Entity {
+public:
+  Turret() : Entity(10) {}
+  int type() const override { return EntityType::TURRET; }
+  std::string Name() const override { return "turret"; }
+  DisplaySymbol Display() const override {
+    return DisplaySymbol{'t', 40,
+                         .color = (attack_left_ > 0) ? terminal::eColor::RED
+                                                     : terminal::eColor::BLUE};
+  }
+  std::vector<int> Tags() const override {
+    return {
+        Tag::MOB,
+        Tag::NON_PASSABLE,
+        Tag::EXPLOSION_TARGET,
+        Tag::CAN_ACTION_BUTTON_ON_CONVEYOR_BELT,
+        Tag::MOVED_BY_CONVEYOR_BELT,
+        Tag::TRIGGER_PROXY_SENSOR,
+        Tag::KILLED_BY_AUTOMATIC_METAL_DOOR,
+        Tag::ANT_TARGET,
+    };
+  }
+  void Step(Output action, std::shared_ptr<Entity> me, Map *map) override;
+
+  bool Hurt(int amount, std::shared_ptr<Entity> emiter,
+            std::shared_ptr<Entity> me, Map *map) override;
+
+private:
+  int attack_left_ = 0;
+  int attack_dir = 1;
+};
+REGISTER_ENTITY(Turret);
+
+class Robot : public Entity {
+public:
+  Robot() : Entity(10) {}
+  int type() const override { return EntityType::ROBOT; }
+  std::string Name() const override { return "robot"; }
+  DisplaySymbol Display() const override {
+    return DisplaySymbol{'r', 40,
+                         .color = (attacking_ > 0) ? terminal::eColor::RED
+                                                   : terminal::eColor::BLUE};
+  }
+  std::vector<int> Tags() const override {
+    return {
+        Tag::MOB,
+        Tag::NON_PASSABLE,
+        Tag::EXPLOSION_TARGET,
+        Tag::CAN_ACTION_BUTTON_ON_CONVEYOR_BELT,
+        Tag::MOVED_BY_CONVEYOR_BELT,
+        Tag::TRIGGER_PROXY_SENSOR,
+        Tag::KILLED_BY_AUTOMATIC_METAL_DOOR,
+        Tag::ANT_TARGET,
+    };
+  }
+  void Step(Output action, std::shared_ptr<Entity> me, Map *map) override;
+
+  bool Hurt(int amount, std::shared_ptr<Entity> emiter,
+            std::shared_ptr<Entity> me, Map *map) override;
+
+private:
+  Output StepAI(std::shared_ptr<Entity> me, Map *map);
+  void StepExecutePlan(Output action, std::shared_ptr<Entity> me, Map *map);
+  bool attacking_ = false;
+};
+REGISTER_ENTITY(Robot);
+
+class Goliat : public Entity {
+public:
+  Goliat() : Entity(30) {}
+  int type() const override { return EntityType::GOLIAT; }
+  std::string Name() const override { return "goliat"; }
+  DisplaySymbol Display() const override {
+    return DisplaySymbol{'G', 40,
+                         .color = (attacking_ > 0) ? terminal::eColor::RED
+                                                   : terminal::eColor::BLUE};
+  }
+  std::vector<int> Tags() const override {
+    return {
+        Tag::MOB,
+        Tag::NON_PASSABLE,
+        Tag::EXPLOSION_TARGET,
+        Tag::CAN_ACTION_BUTTON_ON_CONVEYOR_BELT,
+        Tag::MOVED_BY_CONVEYOR_BELT,
+        Tag::TRIGGER_PROXY_SENSOR,
+        Tag::ANT_TARGET,
+    };
+  }
+  void Step(Output action, std::shared_ptr<Entity> me, Map *map) override;
+
+  bool Hurt(int amount, std::shared_ptr<Entity> emiter,
+            std::shared_ptr<Entity> me, Map *map) override;
+
+private:
+  Output StepAI(std::shared_ptr<Entity> me, Map *map);
+  void StepExecutePlan(Output action, std::shared_ptr<Entity> me, Map *map);
+  bool attacking_ = false;
+};
+REGISTER_ENTITY(Goliat);
+
+class Laser : public Entity {
+public:
+  Laser() {}
+  Laser(int dir) : dir_(dir) {}
+  int type() const override { return EntityType::LASER; }
+  std::string Name() const override { return "laser"; }
+  DisplaySymbol Display() const override;
+  std::vector<int> Tags() const override { return {}; }
+  void Step(Output action, std::shared_ptr<Entity> me, Map *map) override;
+  bool TestPos(const Vector2i &pos, std::shared_ptr<Entity> me, Map *map) ;
+
+private:
+  int dir_ = 1;
+};
+REGISTER_ENTITY(Laser);
+
 void InitializeFromPng(std::string_view path,
                        std::function<void(Vector2i pos, RGB color)> builder,
                        AbstractGameArena *arena);
 void InitializeFromPng(std::string_view path, AbstractGameArena *arena);
 
-void InitializeFromTmx(std::string_view path,
-                       std::function<void(Vector2i pos, int symbol)> builder,
-                       AbstractGameArena *arena);
+void InitializeFromTmx(
+    std::string_view path,
+    std::function<void(Vector2i pos, int symbol, const std::string &message)>
+        builder,
+    AbstractGameArena *arena);
 void InitializeFromTmx(std::string_view path, AbstractGameArena *arena);
 
 void CreateExplosion(const Vector2i &position, std::shared_ptr<Entity> me,

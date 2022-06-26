@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "absl/strings/str_cat.h"
+#include "absl/strings/str_replace.h"
 #include "absl/strings/str_split.h"
 #include "exploratron/core/abstract_arena.h"
 #include "exploratron/core/abstract_game_area.h"
@@ -76,7 +77,8 @@ void InitializeFromPng(std::string_view path,
 }
 
 void InitializeFromTmx(std::string_view path, AbstractGameArena *arena) {
-  const auto builder = [&](Vector2i pos, int symbol) {
+  const auto builder = [&](Vector2i pos, int symbol,
+                           const std::string &message) {
     switch (symbol) {
     case 0:
     case ' ':
@@ -154,6 +156,18 @@ void InitializeFromTmx(std::string_view path, AbstractGameArena *arena) {
     case 'p':
       arena->AddEntity(pos, std::make_shared<common_game::ProxySensor>());
       break;
+    case '?':
+      arena->AddEntity(pos, std::make_shared<common_game::Message>(message));
+      break;
+    case 't':
+      arena->AddEntity(pos, std::make_shared<common_game::Turret>());
+      break;
+    case 'r':
+      arena->AddEntity(pos, std::make_shared<common_game::Robot>());
+      break;
+    case 'G':
+      arena->AddEntity(pos, std::make_shared<common_game::Goliat>());
+      break;
 
     default:
       LOG(FATAL) << "Symbol " << symbol << "(" << (char)symbol << ") unknown";
@@ -163,9 +177,11 @@ void InitializeFromTmx(std::string_view path, AbstractGameArena *arena) {
   InitializeFromTmx(path, builder, arena);
 }
 
-void InitializeFromTmx(std::string_view path,
-                       std::function<void(Vector2i pos, int symbol)> builder,
-                       AbstractGameArena *arena) {
+void InitializeFromTmx(
+    std::string_view path,
+    std::function<void(Vector2i pos, int symbol, const std::string &message)>
+        builder,
+    AbstractGameArena *arena) {
 
   tinyxml2::XMLDocument doc;
   doc.LoadFile(std::string(path).c_str());
@@ -175,37 +191,75 @@ void InitializeFromTmx(std::string_view path,
   auto height = map->IntAttribute("height");
   arena->Initialize({width, height});
 
-  auto *cur_layer = map->FirstChildElement("layer");
-  while (cur_layer != nullptr) {
-    auto *data = cur_layer->FirstChildElement("data");
-    CHECK(data);
-    CHECK(std::strcmp(data->Attribute("encoding"), "csv") == 0);
-    auto *cstr_csv_data = data->GetText();
-    std::string_view csv_data(cstr_csv_data);
-    std::vector<std::string> csv_rows = absl::StrSplit(csv_data, "\n");
-    CHECK_EQ(csv_rows.size() - 2, height);
-    int row_idx = 0;
-    for (auto &csv_row : csv_rows) {
-      if (csv_row.empty()) {
-        continue;
-      }
-      std::vector<std::string> csv_cols = absl::StrSplit(csv_row, ",");
-      // CHECK_EQ(csv_cols.size()-1, width);
-      int col_idx = 0;
-      for (auto &csv_col : csv_cols) {
-        if (!csv_col.empty()) {
-          const int symbol = std::stoi(csv_col);
-          // Tiled index the symbols starting at 1.
-          if (symbol > 0) {
-            builder({col_idx, row_idx}, symbol - 1);
-          }
+  {
+    auto *cur_layer = map->FirstChildElement("layer");
+    while (cur_layer != nullptr) {
+      auto *data = cur_layer->FirstChildElement("data");
+      CHECK(data);
+      CHECK(std::strcmp(data->Attribute("encoding"), "csv") == 0);
+      auto *cstr_csv_data = data->GetText();
+      std::string_view csv_data(cstr_csv_data);
+      std::vector<std::string> csv_rows = absl::StrSplit(csv_data, "\n");
+      CHECK_EQ(csv_rows.size() - 2, height);
+      int row_idx = 0;
+      for (auto &csv_row : csv_rows) {
+        if (csv_row.empty()) {
+          continue;
         }
-        col_idx++;
-      }
+        std::vector<std::string> csv_cols = absl::StrSplit(csv_row, ",");
+        // CHECK_EQ(csv_cols.size()-1, width);
+        int col_idx = 0;
+        for (auto &csv_col : csv_cols) {
+          if (!csv_col.empty()) {
+            const int symbol = std::stoi(csv_col);
+            // Tiled index the symbols starting at 1.
+            if (symbol > 0) {
+              builder({col_idx, row_idx}, symbol - 1, {});
+            }
+          }
+          col_idx++;
+        }
 
-      row_idx++;
+        row_idx++;
+      }
+      cur_layer = cur_layer->NextSiblingElement("layer");
     }
-    cur_layer = cur_layer->NextSiblingElement();
+  }
+
+  {
+    auto *cur_objectgroup = map->FirstChildElement("objectgroup");
+    while (cur_objectgroup != nullptr) {
+      auto *cur_object = cur_objectgroup->FirstChildElement("object");
+      while (cur_object != nullptr) {
+
+        int gid = cur_object->IntAttribute("gid");
+        int x = cur_object->IntAttribute("x");
+        int y = cur_object->IntAttribute("y");
+        CHECK(gid >= 0);
+        CHECK(x >= 0);
+        CHECK(y >= 0);
+
+        std::string message;
+        auto *cur_properties = cur_object->FirstChildElement("properties");
+        CHECK(cur_properties);
+        auto *cur_property = cur_properties->FirstChildElement("property");
+        while (cur_property != nullptr) {
+
+          auto *raw_name = cur_property->Attribute("name");
+          auto *raw_value = cur_property->Attribute("value");
+          if (std::strcmp(raw_name, "message") == 0) {
+            message = raw_value;
+          }
+
+          cur_property = cur_property->NextSiblingElement("property");
+        }
+        message = absl::StrReplaceAll(message, {{"\\n", "\n"}});
+        builder({x / 16, y / 16 - 1}, gid - 1, message);
+
+        cur_object = cur_object->NextSiblingElement("object");
+      }
+      cur_objectgroup = cur_objectgroup->NextSiblingElement("objectgroup");
+    }
   }
 
   arena->map().ApplyPending();
@@ -425,6 +479,7 @@ void AntQueen::StepExecutePlan(Output action, std::shared_ptr<Entity> me,
   case eAction::MAGIC: {
     switch (action.magic_idx) {
     case eMagic::CREATE_ANT: {
+      map->AddLog("ant queen lay eggs");
       for (int dir = 1; dir < eDirection::_NUM_DIRECTIONS; dir++) {
         auto target_pos = position() + Vector2i(dir);
         auto &target_cell = map->cell(target_pos);
@@ -481,6 +536,9 @@ void Player::StepMove(Output action, std::shared_ptr<Entity> me, Map *map) {
 
     if (e->HasTag(Tag::NON_PASSABLE)) {
       passable = false;
+      if (e->type() == EntityType::STEEL_DOOR) {
+        map->AddLog(e->Name() + " is closed");
+      }
     }
 
     if (e->HasTag(Tag::ACTIONABLE)) {
@@ -577,6 +635,7 @@ void Player::StepMagic(Output action, std::shared_ptr<Entity> me, Map *map) {
     map->IterateLine(me->position(), action.target, process_cell);
     if (found_good) {
       map->AddEntity(last_good, std::make_shared<Fire>());
+      map->AddLog(Name() + " throws fireball");
     }
   } break;
 
@@ -589,6 +648,7 @@ void Player::StepMagic(Output action, std::shared_ptr<Entity> me, Map *map) {
 
     auto target_pos = ThrowPosition(action, me, map);
     if (target_pos.has_value()) {
+      map->AddLog(Name() + " throws food");
       map->AddEntity(target_pos.value(), std::make_shared<Food>());
     }
   } break;
@@ -602,6 +662,7 @@ void Player::StepMagic(Output action, std::shared_ptr<Entity> me, Map *map) {
 
     auto target_pos = ThrowPosition(action, me, map);
     if (target_pos.has_value()) {
+      map->AddLog(Name() + " throws explosive");
       map->AddEntity(target_pos.value(), std::make_shared<Explosive>(true));
     }
   } break;
@@ -1007,5 +1068,294 @@ void ProxySensor::Step(Output action, std::shared_ptr<Entity> me, Map *map) {
   last_entity_ids_ = entity_ids;
 }
 
+void Message::Step(Output action, std::shared_ptr<Entity> me, Map *map) {
+  auto &cell = map->cell(position());
+  if (cell.HasEntity(EntityType::PLAYER)) {
+    map->AddLog(message_);
+  }
+}
+
+bool Laser::TestPos(const Vector2i &pos, std::shared_ptr<Entity> me, Map *map) {
+  if (!map->Contains(pos)) {
+    return false;
+  }
+  const auto &cell = map->cell(pos);
+
+  bool stopped = false;
+  for (const auto &e : cell.entities_) {
+    if (e->HasTag(Tag::ROBOT_TARGET)) {
+      e->Hurt(2, me, e, map);
+      stopped = true;
+    }
+    if (e->HasTag(Tag::NON_PASSABLE)) {
+      stopped = true;
+    }
+  }
+
+  if (stopped) {
+    return false;
+  } else {
+    return true;
+  }
+}
+
+void Laser::Step(Output action, std::shared_ptr<Entity> me, Map *map) {
+  Vector2i dir(dir_);
+  Vector2i new_pos = position() + dir;
+  if (TestPos(new_pos, me, map)) {
+    map->MoveEntity(new_pos, me);
+  } else {
+    map->RemoveEntity(me);
+  }
+}
+
+DisplaySymbol Laser::Display() const {
+  return DisplaySymbol{(dir_ == 1 || dir_ == 3) ? '-' : '|', 30,
+                       .color = terminal::eColor::YELLOW};
+}
+
+void Turret::Step(Output action, std::shared_ptr<Entity> me, Map *map) {
+  for (int dir_idx = 1; dir_idx < eDirection::_NUM_DIRECTIONS; dir_idx++) {
+    Vector2i dir(dir_idx);
+    Vector2i cur = position();
+    bool attack = false;
+
+    // Scan direction
+    while (true) {
+      cur += dir;
+      if (!map->Contains(cur)) {
+        break;
+      }
+      const auto &cell = map->cell(cur);
+      bool stopped = false;
+      for (const auto &e : cell.entities_) {
+        if (e->HasTag(Tag::ROBOT_TARGET)) {
+          attack = true;
+          break;
+        }
+        if (e->HasTag(Tag::NON_PASSABLE)) {
+          stopped = true;
+          break;
+        }
+      }
+      if (stopped || attack) {
+        break;
+      }
+    }
+
+    if (attack) {
+      attack_left_ = 2;
+      attack_dir = dir_idx;
+    }
+  }
+
+  if (attack_left_ > 0) {
+    attack_left_--;
+
+    auto laser = std::make_shared<Laser>(attack_dir);
+    auto laser_pos = position() + Vector2i(attack_dir);
+    if (laser->TestPos(laser_pos, me, map)) {
+      map->AddEntity(laser_pos, laser);
+    } else {
+    }
+  }
+}
+
+void Robot::Step(Output action, std::shared_ptr<Entity> me, Map *map) {
+  if (action.action == eAction::AI) {
+    action = StepAI(me, map);
+  }
+  StepExecutePlan(action, me, map);
+}
+
+Output Robot::StepAI(std::shared_ptr<Entity> me, Map *map) {
+  Output action;
+  attacking_ = false;
+
+  // Target visible ennemi
+  auto visible_entities = map->ListVisibleEntities(
+      me->position(), Tag::ROBOT_TARGET, Tag::WALL_LIKE, 20);
+
+  std::shared_ptr<Entity> best_target;
+  for (auto &e : visible_entities) {
+    if (e.get() == this) {
+      continue;
+    }
+    best_target = e;
+    break;
+  }
+  if (best_target) {
+    // Move/attack toward target
+    attacking_ = true;
+    return GoToDirect(Tag::NON_PASSABLE, best_target->position(), map, true);
+  }
+
+  // Patrol
+  auto maybe_patrol =
+      Patrol(Tag::NON_PASSABLE, Tag::WALL_LIKE, EntityType::PATROL_ROUTE, map);
+  if (maybe_patrol.has_value()) {
+    return maybe_patrol.value();
+  }
+
+  // Random walk
+  return RandomDirection(Tag::NON_PASSABLE, map);
+}
+
+void Robot::StepExecutePlan(Output action, std::shared_ptr<Entity> me,
+                            Map *map) {
+  switch (action.action) {
+  case eAction::MOVE: {
+    Vector2i dir(action.move);
+    Vector2i new_pos = position() + dir;
+    if (!map->Contains(new_pos)) {
+      break;
+    }
+    const auto &cell = map->cell(new_pos);
+
+    bool passable = true;
+    for (const auto &e : cell.entities_) {
+      if (e->type() == EntityType::CONVEYOR_BELT &&
+          dynamic_cast<ConveyorBelt *>(e.get())->direction() ==
+              ReverseDirection(action.move)) {
+        passable = false;
+      }
+      if (e->HasTag(Tag::NON_PASSABLE)) {
+        passable = false;
+      }
+    }
+
+    if (!passable) {
+      break;
+    }
+    map->MoveEntity(new_pos, me);
+  } break;
+
+  case eAction::MELLE_ATTACK: {
+    Vector2i dir(action.move);
+    Vector2i new_pos = position() + dir;
+    if (!map->Contains(new_pos)) {
+      break;
+    }
+    for (const auto &e : map->cell(new_pos).entities_) {
+      if (e->HasTag(Tag::ROBOT_TARGET)) {
+        e->Hurt(2, me, e, map);
+        break;
+      }
+    }
+  } break;
+  }
+}
+
+void Goliat::Step(Output action, std::shared_ptr<Entity> me, Map *map) {
+  if (action.action == eAction::AI) {
+    action = StepAI(me, map);
+  }
+  StepExecutePlan(action, me, map);
+}
+
+Output Goliat::StepAI(std::shared_ptr<Entity> me, Map *map) {
+  attacking_ = false;
+  Output action;
+
+  // Target visible ennemi
+  auto visible_entities = map->ListVisibleEntities(
+      me->position(), Tag::ROBOT_TARGET, Tag::WALL_LIKE, 20);
+
+  std::shared_ptr<Entity> best_target;
+  for (auto &e : visible_entities) {
+    if (e.get() == this) {
+      continue;
+    }
+    best_target = e;
+    break;
+  }
+  if (best_target) {
+    // Move/attack toward target
+    attacking_ = true;
+    return GoToDirect(Tag::NON_PASSABLE, best_target->position(), map, true);
+  }
+
+  // Patrol
+  auto maybe_patrol =
+      Patrol(Tag::NON_PASSABLE, Tag::WALL_LIKE, EntityType::PATROL_ROUTE, map);
+  if (maybe_patrol.has_value()) {
+    return maybe_patrol.value();
+  }
+
+  // Random walk
+  return RandomDirection(Tag::NON_PASSABLE, map);
+}
+
+void Goliat::StepExecutePlan(Output action, std::shared_ptr<Entity> me,
+                             Map *map) {
+  switch (action.action) {
+  case eAction::MOVE: {
+    Vector2i dir(action.move);
+    Vector2i new_pos = position() + dir;
+    if (!map->Contains(new_pos)) {
+      break;
+    }
+    const auto &cell = map->cell(new_pos);
+
+    bool passable = true;
+    for (const auto &e : cell.entities_) {
+      if (e->type() == EntityType::CONVEYOR_BELT &&
+          dynamic_cast<ConveyorBelt *>(e.get())->direction() ==
+              ReverseDirection(action.move)) {
+        passable = false;
+      }
+      if (e->HasTag(Tag::NON_PASSABLE)) {
+        passable = false;
+      }
+    }
+
+    if (!passable) {
+      break;
+    }
+    map->MoveEntity(new_pos, me);
+  } break;
+
+  case eAction::MELLE_ATTACK: {
+    Vector2i dir(action.move);
+    Vector2i new_pos = position() + dir;
+    if (!map->Contains(new_pos)) {
+      break;
+    }
+    for (const auto &e : map->cell(new_pos).entities_) {
+      if (e->HasTag(Tag::ROBOT_TARGET)) {
+        e->Hurt(5, me, e, map);
+        break;
+      }
+    }
+  } break;
+  }
+}
+
+bool Turret::Hurt(int amount, std::shared_ptr<Entity> emiter,
+                  std::shared_ptr<Entity> me, Map *map) {
+  const auto r = Entity::Hurt(amount, emiter, me, map);
+  if (r) {
+    CreateExplosion(position(), me, map, 10, 2);
+  }
+  return r;
+}
+
+bool Robot::Hurt(int amount, std::shared_ptr<Entity> emiter,
+                 std::shared_ptr<Entity> me, Map *map) {
+  const auto r = Entity::Hurt(amount, emiter, me, map);
+  if (r) {
+    CreateExplosion(position(), me, map, 10, 2);
+  }
+  return r;
+}
+
+bool Goliat::Hurt(int amount, std::shared_ptr<Entity> emiter,
+                  std::shared_ptr<Entity> me, Map *map) {
+  const auto r = Entity::Hurt(amount, emiter, me, map);
+  if (r) {
+    CreateExplosion(position(), me, map, 10, 2);
+  }
+  return r;
+}
 } // namespace common_game
 } // namespace exploratron
