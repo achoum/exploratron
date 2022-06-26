@@ -449,6 +449,9 @@ std::vector<MapInfo> ListMaps() {
   std::string line;
   int idx = 0;
   while (std::getline(file, line)) {
+    if (line.size() > 0 && line[0] == '#') {
+      continue;
+    }
     std::vector<std::string> items = absl::StrSplit(line, "\t");
     CHECK_EQ(items.size(), 3);
     maps.push_back(
