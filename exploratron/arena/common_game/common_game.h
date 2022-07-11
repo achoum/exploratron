@@ -57,6 +57,7 @@ enum EntityType : int {
   ROBOT = 26,
   GOLIAT = 27,
   LASER = 28,
+  WORM = 29,
 };
 
 enum Tag {
@@ -716,12 +717,51 @@ public:
   DisplaySymbol Display() const override;
   std::vector<int> Tags() const override { return {}; }
   void Step(Output action, std::shared_ptr<Entity> me, Map *map) override;
-  bool TestPos(const Vector2i &pos, std::shared_ptr<Entity> me, Map *map) ;
+  bool TestPos(const Vector2i &pos, std::shared_ptr<Entity> me, Map *map);
 
 private:
   int dir_ = 1;
 };
 REGISTER_ENTITY(Laser);
+
+class Worm : public Entity {
+public:
+  Worm() : Entity(20) {}
+  int type() const override { return EntityType::WORM; }
+  std::string Name() const override { return "worm"; }
+  DisplaySymbol Display() const override;
+  std::vector<int> Tags() const override {
+    return {
+        Tag::MOB,
+        Tag::NON_PASSABLE,
+        Tag::PLAYER_TARGET,
+        Tag::FUNGUS_TARGET,
+        Tag::FIRE_TARGET,
+        Tag::EXPLOSION_TARGET,
+        Tag::TRIGGER_PROXY_SENSOR,
+        Tag::KILLED_BY_AUTOMATIC_METAL_DOOR,
+        Tag::ROBOT_TARGET,
+    };
+  }
+  void Step(Output action, std::shared_ptr<Entity> me, Map *map) override;
+
+private:
+  typedef std::vector<std::shared_ptr<Entity>> Segments;
+
+  void MoveSegments(const Vector2i &new_pos, std::shared_ptr<Entity> me,
+                    Map *map, Segments *segments);
+  Segments ListSegments();
+   Segments AutoListSegments();
+  void KillSegments(Segments *segments, Map *map);
+  Output StepAI(const Segments &segments, std::shared_ptr<Entity> me, Map *map);
+  void StepExecutePlan(Output action, std::shared_ptr<Entity> me, Map *map,
+                       Segments *segments);
+
+  int last_run_ = -1;
+  int prev_dir_ = -1;
+  int next_dir_ = -1;
+};
+REGISTER_ENTITY(Worm);
 
 void InitializeFromPng(std::string_view path,
                        std::function<void(Vector2i pos, RGB color)> builder,

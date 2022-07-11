@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.3 - ????-??-??
+
+**Features*
+
+- New mobs: Robots, turrets, goliat, worms.
+- Training of agents with evolutionary algorithm.
+
 ## v0.2 - 2022-06-24
 
 A few improvements.

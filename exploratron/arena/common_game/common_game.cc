@@ -168,6 +168,9 @@ void InitializeFromTmx(std::string_view path, AbstractGameArena *arena) {
     case 'G':
       arena->AddEntity(pos, std::make_shared<common_game::Goliat>());
       break;
+    case 'W':
+      arena->AddEntity(pos, std::make_shared<common_game::Worm>());
+      break;
 
     default:
       LOG(FATAL) << "Symbol " << symbol << "(" << (char)symbol << ") unknown";
@@ -1357,5 +1360,90 @@ bool Goliat::Hurt(int amount, std::shared_ptr<Entity> emiter,
   }
   return r;
 }
+
+DisplaySymbol Worm::Display() const {
+  return DisplaySymbol{'W', 50, .color = terminal::eColor::YELLOW};
+}
+
+Output Worm::StepAI(const Segments &segments, std::shared_ptr<Entity> me,
+                    Map *map) {
+  // TODO
+  // Random walk
+  return RandomDirection(Tag::NON_PASSABLE, map);
+}
+
+void Worm::StepExecutePlan(Output action, std::shared_ptr<Entity> me, Map *map,
+                           Segments *segments) {
+
+  switch (action.action) {
+  case eAction::MOVE: {
+    Vector2i dir(action.move);
+    Vector2i new_pos = segments->front()->position() + dir;
+    if (!map->Contains(new_pos)) {
+      break;
+    }
+    const auto &cell = map->cell(new_pos);
+
+    bool passable = true;
+    for (const auto &e : cell.entities_) {
+      if (e->type() == EntityType::CONVEYOR_BELT &&
+          dynamic_cast<ConveyorBelt *>(e.get())->direction() ==
+              ReverseDirection(action.move)) {
+        passable = false;
+      }
+      if (e->HasTag(Tag::NON_PASSABLE)) {
+        passable = false;
+      }
+    }
+
+    if (!passable) {
+      break;
+    }
+    MoveSegments(new_pos, me, map, segments);
+  } break;
+  }
+}
+
+void Worm::Step(Output action, std::shared_ptr<Entity> me, Map *map) {
+  if (last_run_ == map->time()) {
+    return;
+  }
+
+  auto segments = ListSegments();
+  if (segments.size() <= 2) {
+    // Too short. Die.
+    KillSegments(&segments, map);
+    return;
+  }
+
+  if (action.action == eAction::AI) {
+    action = StepAI(segments, me, map);
+  }
+  StepExecutePlan(action, me, map, &segments);
+}
+
+Worm::Segments Worm::AutoListSegments() {
+  // TODO
+}
+
+Worm::Segments Worm::ListSegments() {
+  if (prev_dir_ == -1) {
+    return AutoListSegments();
+  }
+  // TODO.
+}
+
+void Worm::KillSegments(Segments *segments, Map *map) {
+  for (auto &s : *segments) {
+    map->RemoveEntity(s);
+  }
+}
+
+void Worm::MoveSegments(const Vector2i &new_pos, std::shared_ptr<Entity> me,
+                        Map *map, Segments *segments) {
+  //    map->MoveEntity(new_pos, me);
+  // TODO
+}
+
 } // namespace common_game
 } // namespace exploratron

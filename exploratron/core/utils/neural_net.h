@@ -30,6 +30,7 @@ struct WeightsAllocator {
   WeightsAddress CreateAddress(int size);
   WeightsAddress CreateAddress(int input_dim, int output_dim);
   void AllocateWeightBank(VectorF *bank);
+  int size() const { return next_begin; }
 
   int next_begin = 0;
 };
@@ -110,7 +111,7 @@ inline void Forward(const VectorF &input, const SVectorF &weights,
 template <ActivationFn Activation>
 inline void AddTo(const VectorF &input, VectorF *output) {
   DCHECK_EQ(input.size(), output->size());
-  FOR_I(input.size()) { (*output)[i] += input[i]; }
+  FOR_I(input.size()) { (*output)[i] = Activation((*output)[i] + input[i]); }
 }
 
 void BoundValues(float r, VectorF *output);

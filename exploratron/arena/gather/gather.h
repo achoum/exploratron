@@ -31,7 +31,7 @@ struct Options {
   int height_ = 10; // 20
 
   int max_food = 0; // 5
-  int max_coins = 2;
+  int max_coins = 1;
 };
 
 class GatherArena : public AbstractArena {
@@ -53,7 +53,7 @@ private:
 
   void SetPlayerPos(Vector2i p, bool check_previous = true);
   void FillCells(Vector2i corner, Vector2i size, CellContent type);
-  bool AddRandomCell(CellContent type,int border=1);
+  bool AddRandomCell(CellContent type, int border = 1);
   void FillInput();
 
   Options options_;
@@ -72,6 +72,7 @@ private:
 
 class GatherArenaBuilder : public AbstractArenaBuilder {
 public:
+  GatherArenaBuilder() {}
   virtual ~GatherArenaBuilder() = default;
 
   std::unique_ptr<AbstractArena> Create(

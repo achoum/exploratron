@@ -1,11 +1,8 @@
-// var term = null;
 var output = null;
 var next_output = '';
 var keys = [];
 
 function terminal_output(text) {
-  // console.log('terminal_output:', text);
-  //  term.write(text);
   next_output += text;
 }
 
@@ -23,10 +20,8 @@ document.onkeydown = function(evt) {
 };
 
 function clear_screen() {
-  // console.log('clear_screen');
   output.innerHTML = '';
   next_output = '';
-  // term.clear();
 }
 
 function next_key() {
@@ -34,7 +29,6 @@ function next_key() {
     return -1;
   }
   let key = keys.shift();
-  // console.log('Send key', keys, '=', key);
   return key;
 }
 
@@ -79,38 +73,5 @@ var Module = {
   preRun: [function() {}],
   onRuntimeInitialized: function() {
     output = document.getElementById('output');
-
-    /*
-    // setOption(key: 'fontSize' | 'letterSpacing' | 'lineHeight' |
-    // 'tabStopWidth' | 'scrollback', value: number): void;
-    //term.setOption('fontSize', 14);
-    term = new Terminal({
-      rows: 40,
-      cols: 120,
-      fontSize: 14,
-      fontFamily: 'CascadiaMono',
-      letterSpacing: -4,
-      // fontFamily: 'Roboto Mono',
-      //fontFamily: 'Ubuntu Mono, courier-new, courier, monospace',
-      //enableBold: true,
-      //letterSpacing: -0.7,
-      //lineHeight:0.9,
-      // convertEol: true,
-    });
-
-    // const fitAddon = new FitAddon.FitAddon();
-    // term.loadAddon(fitAddon);
-    // term.loadAddon(new B.XtermWebfont())
-    term.open(document.getElementById('terminal'));
-    // term.loadWebfontAndOpen(document.getElementById('terminal'))
-    term.onKey(function(ev) {
-      let key = ev.key;
-      for (var i = 0; i < key.length; i++) {
-        keys.push(key.charAt(i));
-      }
-    });
-    term.focus();
-    // fitAddon.fit();
-    */
   },
 };

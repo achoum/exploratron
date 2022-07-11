@@ -19,7 +19,7 @@ MapDef BuildMapDefinition(const Options &options) {
   if (options.max_coins > 1) {
     dim = 5;
   }
-  return MapDef(MatrixShape(9, 9), static_cast<int>(dim));
+  return MapDef(MatrixShape(7, 7), static_cast<int>(dim));
 }
 
 } // namespace
@@ -31,6 +31,10 @@ MapDef GatherArenaBuilder::MapDefinition() const {
 GatherArena::GatherArena(
     const std::vector<const AbstractControllerBuilder *> &controller_builders,
     const Options &options) {
+
+  auto seed = std::chrono::system_clock::now().time_since_epoch().count();
+  rnd.seed(seed);
+
   options_ = options;
   map_def = BuildMapDefinition(options_);
   DCHECK_EQ(controller_builders.size(), 1);
@@ -57,12 +61,14 @@ GatherArena::GatherArena(
   SetPlayerPos({options_.width_ / 2, options_.height_ / 2}, false);
 
   // Random walls.
-  // FOR_I(3) { AddRandomCell(CellContent::WALL, 2); }
+  FOR_I(20) { AddRandomCell(CellContent::WALL, 2); }
 
   // Horizontal wall.
+  /*
   for (int x = 4; x < options_.width_ - 4; x++) {
     cell({x, options_.height_ / 2 - 1}).content = CellContent::WALL;
   }
+  */
 
   InitRandom(&rnd);
 }
@@ -227,9 +233,13 @@ bool GatherArena::Step() {
   }
 
   if (num_coins < options_.max_coins) {
-    if (AddRandomCell(CellContent::COIN, 2)) {
-      num_coins++;
-    }
+    // if (AddRandomCell(CellContent::COIN, 2)) {
+    //   num_coins++;
+    // }
+
+    cell({options_.width_ / 2, options_.height_ - 3}).content =
+        CellContent::COIN;
+    num_coins++;
   }
 
   if (last_score_step >= 0 && (last_score_step - options_.step_left_ > 100)) {
