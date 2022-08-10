@@ -28,6 +28,12 @@ build:wasm --config=linux
 build:wasm --copt=-Wno-narrowing
 build:wasm --copt=-Wno-c99-designator
 build:wasm --copt=-Wno-switch
+build:wasm --copt=-Wno-deprecated-builtins
+build:wasm --copt=-Wno-error=array-parameter
+
 build:wasm --host_copt=-Wno-narrowing
 build:wasm --host_copt=-Wno-c99-designator
 build:wasm --host_copt=-Wno-switch
+build:wasm --host_copt=-Wno-deprecated-builtins
+build:wasm --host_copt=-Wno-error=array-parameter
+

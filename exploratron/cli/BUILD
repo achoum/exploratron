@@ -20,7 +20,9 @@ cc_library(
     srcs = ["game.cc"],
     data = ["//exploratron/assets"],
     defines = select({
-        "//exploratron:terminal_wasm_console": [],
+        "//exploratron:terminal_wasm_console": [
+            "NO_QUIT",
+        ],
         "//exploratron:terminal_linux_console": [
             "SKIP_INTRO",
             "SHOW_STACK_TRACE_IF_ABORT",

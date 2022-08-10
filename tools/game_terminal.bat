@@ -9,4 +9,4 @@ bazel build %MODE% //exploratron/cli:game %FLAG%
 if %errorlevel% neq 0 exit /b %errorlevel%
 echo "====================================="
 
-bazel-bin\exploratron\cli\game
+bazel-bin\exploratron\cli\game "--map=robot_city.tmx"

@@ -1,7 +1,4 @@
 {
-    // See https://go.microsoft.com/fwlink/?LinkId=733558
-    // for the documentation about the tasks.json format
-    // --config=windows_clang --compiler=clang-cl
     "version": "2.0.0",
     "tasks": [
         {
@@ -16,7 +13,7 @@
                 ]
             },
             "group": {
-                "kind": "build",
+                "kind": "build"
             },
             "presentation": {
                 "clear": true
@@ -39,7 +36,7 @@
                 ]
             },
             "group": {
-                "kind": "test",
+                "kind": "test"
             },
             "presentation": {
                 "clear": true
@@ -62,7 +59,7 @@
                 ]
             },
             "group": {
-                "kind": "test",
+                "kind": "test"
             },
             "presentation": {
                 "clear": true
@@ -78,7 +75,7 @@
                 "dbg",
                 "//exploratron/cli:game",
                 "--config=windows_vs",
-                "--define=terminal=windows_console",
+                "--define=terminal=windows_console"
             ],
             "problemMatcher": {
                 "base": "$msCompile",
@@ -87,10 +84,7 @@
                     "${workspaceRoot}"
                 ]
             },
-            "group": {
-                "kind": "build",
-                "isDefault": true
-            },
+            "group": "build",
             "presentation": {
                 "clear": true
             }
@@ -105,7 +99,7 @@
                 "dbg",
                 "//exploratron/cli:game",
                 "--config=windows_vs",
-                "--define=terminal=windows_console",
+                "--define=terminal=windows_console"
             ],
             "problemMatcher": {
                 "base": "$msCompile",
@@ -116,6 +110,29 @@
             },
             "group": {
                 "kind": "test",
+                "isDefault": true
+            },
+            "presentation": {
+                "clear": true
+            }
+        },
+        {
+            "label": "linux debug build game",
+            "type": "shell",
+            "command": "bazel",
+            "args": [
+                "build",
+                "-c",
+                "dbg",
+                "--copt=-O0",
+                "--copt=-g",
+                "//exploratron/cli:game",
+                "--config=linux",
+                "--define=terminal=linux_console"
+            ],
+            "problemMatcher": "$gcc",
+            "group": {
+                "kind": "build",
                 "isDefault": true
             },
             "presentation": {

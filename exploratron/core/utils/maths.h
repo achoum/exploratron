@@ -1,13 +1,15 @@
 #ifndef EXPLORATRON_CORE_UTILS_VECTOR_H_
 #define EXPLORATRON_CORE_UTILS_VECTOR_H_
 
-#include "exploratron/core/utils/logging.h"
-#include "exploratron/core/utils/macros.h"
+#include <stdint.h>
+
 #include <ostream>
 #include <random>
 #include <sstream>
-#include <stdint.h>
 #include <vector>
+
+#include "exploratron/core/utils/logging.h"
+#include "exploratron/core/utils/macros.h"
 
 namespace exploratron {
 
@@ -22,16 +24,46 @@ enum eDirection {
 
 inline eDirection ReverseDirection(eDirection d) {
   switch (d) {
-  case eDirection::RIGHT:
-    return eDirection::LEFT;
-  case eDirection::DOWN:
-    return eDirection::UP;
-  case eDirection::LEFT:
-    return eDirection::RIGHT;
-  case eDirection::UP:
-    return eDirection::DOWN;
-  default:
-    return eDirection::NONE;
+    case eDirection::RIGHT:
+      return eDirection::LEFT;
+    case eDirection::DOWN:
+      return eDirection::UP;
+    case eDirection::LEFT:
+      return eDirection::RIGHT;
+    case eDirection::UP:
+      return eDirection::DOWN;
+    default:
+      return eDirection::NONE;
+  }
+}
+
+inline eDirection TurnClock(eDirection d) {
+  switch (d) {
+    case eDirection::RIGHT:
+      return eDirection::DOWN;
+    case eDirection::DOWN:
+      return eDirection::LEFT;
+    case eDirection::LEFT:
+      return eDirection::UP;
+    case eDirection::UP:
+      return eDirection::RIGHT;
+    default:
+      return eDirection::NONE;
+  }
+}
+
+inline eDirection TurnInverseClock(eDirection d) {
+  switch (d) {
+    case eDirection::RIGHT:
+      return eDirection::UP;
+    case eDirection::DOWN:
+      return eDirection::RIGHT;
+    case eDirection::LEFT:
+      return eDirection::DOWN;
+    case eDirection::UP:
+      return eDirection::LEFT;
+    default:
+      return eDirection::NONE;
   }
 }
 
@@ -53,26 +85,26 @@ struct Vector2i {
 
   Vector2i(const eDirection &d) {
     switch (d) {
-    case eDirection::RIGHT:
-      x = 1;
-      y = 0;
-      break;
-    case eDirection::DOWN:
-      x = 0;
-      y = 1;
-      break;
-    case eDirection::LEFT:
-      x = -1;
-      y = 0;
-      break;
-    case eDirection::UP:
-      x = 0;
-      y = -1;
-      break;
-    default:
-      x = 0;
-      y = 0;
-      break;
+      case eDirection::RIGHT:
+        x = 1;
+        y = 0;
+        break;
+      case eDirection::DOWN:
+        x = 0;
+        y = 1;
+        break;
+      case eDirection::LEFT:
+        x = -1;
+        y = 0;
+        break;
+      case eDirection::UP:
+        x = 0;
+        y = -1;
+        break;
+      default:
+        x = 0;
+        y = 0;
+        break;
     }
   }
 
@@ -148,8 +180,8 @@ struct Vector2i {
 
 typedef Vector2i MatrixShape;
 
-template <typename V> struct Matrix {
-
+template <typename V>
+struct Matrix {
   V &operator()(int x, int y) { return values[index(x, y)]; }
   const V &operator()(int x, int y) const { return values[index(x, y)]; }
   int index(int x, int y) const { return x + y * shape.x; }
@@ -171,7 +203,8 @@ template <typename V> struct Matrix {
   MatrixShape shape;
 };
 
-template <typename C, typename T> std::string print(const T &vs) {
+template <typename C, typename T>
+std::string print(const T &vs) {
   std::stringstream ss;
   ss << "(" << vs.size() << ")";
   for (const auto &v : vs) {
@@ -182,12 +215,13 @@ template <typename C, typename T> std::string print(const T &vs) {
 
 typedef Matrix<uint8_t> MatrixU8;
 
-template <typename T> void InitRandom(T *rnd) {
+template <typename T>
+void InitRandom(T *rnd) {
   std::random_device rd;
   std::seed_seq seed{rd(), static_cast<unsigned int>(time(0))};
   rnd->seed(seed);
 }
 
-} // namespace exploratron
+}  // namespace exploratron
 
 #endif

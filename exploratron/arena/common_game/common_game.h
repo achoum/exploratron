@@ -2,6 +2,7 @@
 #define EXPLORATRON_AREA_COMMON_GAME_H_
 
 #include <functional>
+#include <list>
 #include <memory>
 #include <optional>
 #include <random>
@@ -63,6 +64,8 @@ enum EntityType : int {
 enum Tag {
   // Block motions.
   NON_PASSABLE,
+  // Block motions for worms.
+  NON_PASSABLE_WORM,
   // A floor (not used yet);
   FLOOR_LIKE,
   // Block fireballs, fungus, explosion propagation.
@@ -107,10 +110,14 @@ enum Tag {
   KILLED_BY_AUTOMATIC_METAL_DOOR,
   // Targeted by robots
   ROBOT_TARGET,
+  // Targeted by worms
+  WORM_TARGET,
+  // Hurt target by hand is not target without low priority are found.
+  WORM_LOW_PRIORITY
 };
 
 class UnbreakableWall : public Entity {
-public:
+ public:
   int type() const override { return EntityType::UNBREAKABLE_WALL; }
   std::string Name() const override { return "unbreakable wall"; }
   DisplaySymbol Display() const override {
@@ -118,26 +125,26 @@ public:
                          .color = terminal::eColor::GRAY};
   }
   std::vector<int> Tags() const override {
-    return {Tag::WALL_LIKE, Tag::NON_PASSABLE};
+    return {Tag::WALL_LIKE, Tag::NON_PASSABLE, Tag::NON_PASSABLE_WORM};
   }
 };
 REGISTER_ENTITY(UnbreakableWall);
 
 class SteelWall : public Entity {
-public:
+ public:
   int type() const override { return EntityType::STEEL_WALL; }
   std::string Name() const override { return "steel wall"; }
   DisplaySymbol Display() const override {
     return DisplaySymbol{256 + 0, 40, .color = terminal::eColor::BLUE};
   }
   std::vector<int> Tags() const override {
-    return {Tag::WALL_LIKE, Tag::NON_PASSABLE};
+    return {Tag::WALL_LIKE, Tag::NON_PASSABLE, Tag::NON_PASSABLE_WORM};
   }
 };
 REGISTER_ENTITY(SteelWall);
 
 class Wall : public Entity {
-public:
+ public:
   int type() const override { return EntityType::WALL; }
   std::string Name() const override { return "wall"; }
   DisplaySymbol Display() const override {
@@ -150,7 +157,7 @@ public:
 REGISTER_ENTITY(Wall);
 
 class SoftWall : public Entity {
-public:
+ public:
   SoftWall() : Entity(2) {}
   int type() const override { return EntityType::SOFT_WALL; }
   std::string Name() const override { return "soft wall"; }
@@ -163,7 +170,7 @@ public:
 REGISTER_ENTITY(SoftWall);
 
 class AutomaticDoor : public Entity {
-public:
+ public:
   int type() const override { return EntityType::STEEL_DOOR; }
   std::string Name() const override { return "automatic door"; }
   DisplaySymbol Display() const override {
@@ -172,7 +179,8 @@ public:
   }
   std::vector<int> Tags() const override {
     if (closed_) {
-      return {Tag::WALL_LIKE, Tag::NON_PASSABLE, Tag::RECEIVE_ELETRIC_SIGNAL};
+      return {Tag::WALL_LIKE, Tag::NON_PASSABLE, Tag::RECEIVE_ELETRIC_SIGNAL,
+              Tag::NON_PASSABLE_WORM};
     } else {
       return {Tag::RECEIVE_ELETRIC_SIGNAL};
     }
@@ -180,13 +188,13 @@ public:
   void Step(Output action, std::shared_ptr<Entity> me, Map *map) override;
   void ReceiveSignal(int signal, std::shared_ptr<Entity> me, Map *map) override;
 
-private:
+ private:
   bool closed_ = true;
 };
 REGISTER_ENTITY(AutomaticDoor);
 
 class Fungus : public Entity {
-public:
+ public:
   Fungus() {}
   Fungus(int left) : left_(left) {}
   int type() const override { return EntityType::FUNGUS; }
@@ -200,28 +208,30 @@ public:
   }
   void Step(Output action, std::shared_ptr<Entity> me, Map *map) override;
 
-private:
+ private:
   int left_ = 10;
 };
 REGISTER_ENTITY(Fungus);
 
 class FungusTower : public Entity {
-public:
+ public:
   std::string Name() const override { return "fungus tower"; }
   int type() const override { return EntityType::FUNGUS_TOWER; }
   DisplaySymbol Display() const override { return DisplaySymbol{'f', 0}; }
   std::vector<int> Tags() const override {
-    return {
-        Tag::PLAYER_TARGET,    Tag::FUNGUS_LIKE,
-        Tag::FIRE_TARGET,      Tag::FLAMABLE,
-        Tag::EXPLOSION_TARGET, Tag::MOVED_BY_CONVEYOR_BELT}; // Tag::ANT_TARGET,
+    return {Tag::PLAYER_TARGET,
+            Tag::FUNGUS_LIKE,
+            Tag::FIRE_TARGET,
+            Tag::FLAMABLE,
+            Tag::EXPLOSION_TARGET,
+            Tag::MOVED_BY_CONVEYOR_BELT};  // Tag::ANT_TARGET,
   }
   void Step(Output action, std::shared_ptr<Entity> me, Map *map) override;
 };
 // REGISTER_ENTITY(FungusTower);
 
 class Ant : public Entity {
-public:
+ public:
   Ant() : Entity(2) {}
   int type() const override { return EntityType::ANT; }
   std::string Name() const override { return "ant"; }
@@ -242,6 +252,7 @@ public:
         Tag::TRIGGER_PROXY_SENSOR,
         Tag::KILLED_BY_AUTOMATIC_METAL_DOOR,
         Tag::ROBOT_TARGET,
+        Tag::NON_PASSABLE_WORM,
     };
   }
   void Step(Output action, std::shared_ptr<Entity> me, Map *map) override;
@@ -251,7 +262,7 @@ public:
     last_target_time_ = map->time();
   }
 
-private:
+ private:
   Output StepAI(std::shared_ptr<Entity> me, Map *map);
   void StepExecutePlan(Output action, std::shared_ptr<Entity> me, Map *map);
 
@@ -263,7 +274,7 @@ private:
 REGISTER_ENTITY(Ant);
 
 class AntQueen : public Entity {
-public:
+ public:
   AntQueen() : Entity(10) {}
   int type() const override { return EntityType::ANT_QUEEN; }
   std::string Name() const override { return "ant queen"; }
@@ -283,6 +294,7 @@ public:
         Tag::TRIGGER_PROXY_SENSOR,
         Tag::KILLED_BY_AUTOMATIC_METAL_DOOR,
         Tag::ROBOT_TARGET,
+        Tag::NON_PASSABLE_WORM,
     };
   }
   void Step(Output action, std::shared_ptr<Entity> me, Map *map) override;
@@ -291,7 +303,7 @@ public:
   }
   std::vector<Action> AvailableMagics() const override;
 
-private:
+ private:
   enum eMagic {
     CREATE_ANT,
   };
@@ -304,7 +316,7 @@ private:
 REGISTER_ENTITY(AntQueen);
 
 class PatrolRoute : public Entity {
-public:
+ public:
   PatrolRoute() {}
   int type() const override { return EntityType::PATROL_ROUTE; }
   std::string Name() const override { return "patrol route"; }
@@ -316,20 +328,21 @@ public:
 REGISTER_ENTITY(PatrolRoute);
 
 class Player : public Entity {
-public:
+ public:
   Player() : Entity(5) {}
   int type() const override { return EntityType::PLAYER; }
   std::string Name() const override { return "player"; }
   DisplaySymbol Display() const override {
     return DisplaySymbol{256 + 2, 100, .color = terminal::eColor::VIOLET};
-  } // @
+  }  // @
   std::vector<int> Tags() const override {
     return {
         Tag::NON_PASSABLE,         Tag::ANT_TARGET,
         Tag::FUNGUS_TARGET,        Tag::FIRE_TARGET,
         Tag::EXPLOSION_TARGET,     Tag::MOVED_BY_CONVEYOR_BELT,
         Tag::TRIGGER_PROXY_SENSOR, Tag::KILLED_BY_AUTOMATIC_METAL_DOOR,
-        Tag::ROBOT_TARGET,
+        Tag::ROBOT_TARGET,         Tag::NON_PASSABLE_WORM,
+        Tag::WORM_TARGET,
     };
   }
   void Step(Output action, std::shared_ptr<Entity> me, Map *map) override;
@@ -343,7 +356,7 @@ public:
   }
   std::vector<Action> AvailableMagics() const override;
 
-private:
+ private:
   std::optional<Vector2i> ThrowPosition(Output action,
                                         std::shared_ptr<Entity> me, Map *map);
 
@@ -361,7 +374,7 @@ private:
 REGISTER_ENTITY(Player);
 
 class Water : public Entity {
-public:
+ public:
   Water() {}
   int type() const override { return EntityType::WATER; }
   std::string Name() const override { return "water"; }
@@ -371,13 +384,13 @@ public:
   std::vector<int> Tags() const override { return {Tag::EXPLOSION_TARGET}; }
   void Step(Output action, std::shared_ptr<Entity> me, Map *map) override;
 
-private:
+ private:
   // int amount_ = 10;
 };
 // REGISTER_ENTITY(Water);
 
 class Fire : public Entity {
-public:
+ public:
   int type() const override { return EntityType::FIRE; }
   std::string Name() const override { return "fire"; }
   DisplaySymbol Display() const override {
@@ -394,7 +407,7 @@ public:
 REGISTER_ENTITY(Fire);
 
 class Food : public Entity {
-public:
+ public:
   int type() const override { return EntityType::FOOD; }
   std::string Name() const override { return "food"; }
   DisplaySymbol Display() const override {
@@ -409,20 +422,21 @@ public:
         Tag::ANT_LOW_PRIORITY,
         Tag::MOVED_BY_CONVEYOR_BELT,
         Tag::KILLED_BY_AUTOMATIC_METAL_DOOR,
+        Tag::WORM_LOW_PRIORITY,
     };
   }
   void Step(Output action, std::shared_ptr<Entity> me, Map *map) override;
   bool Hurt(int amount, std::shared_ptr<Entity> emiter,
             std::shared_ptr<Entity> me, Map *map) override;
 
-private:
+ private:
   int last_time_eaten_ = -1;
   int amount_left = 100;
 };
 REGISTER_ENTITY(Food);
 
 class ExitDoor : public Entity {
-public:
+ public:
   int type() const override { return EntityType::EXIT_DOOR; }
   std::string Name() const override { return "exit stairs"; }
   DisplaySymbol Display() const override {
@@ -435,7 +449,7 @@ public:
 REGISTER_ENTITY(ExitDoor);
 
 class Pheromone : public Entity {
-public:
+ public:
   Pheromone() {}
   Pheromone(eDirection dir) : dir_(dir) {}
   int type() const override { return EntityType::PHEROMONE; }
@@ -447,13 +461,13 @@ public:
   void Step(Output action, std::shared_ptr<Entity> me, Map *map) override;
   eDirection dir() const { return dir_; }
 
-private:
+ private:
   eDirection dir_ = eDirection::NONE;
 };
 REGISTER_ENTITY(Pheromone);
 
 class Explosive : public Entity {
-public:
+ public:
   Explosive() {}
   Explosive(bool active) : active_(active) {}
 
@@ -465,7 +479,7 @@ public:
   bool Hurt(int amount, std::shared_ptr<Entity> emiter,
             std::shared_ptr<Entity> me, Map *map) override;
 
-private:
+ private:
   void Explode(std::shared_ptr<Entity> me, Map *map);
 
   int left_ = 5;
@@ -474,7 +488,7 @@ private:
 REGISTER_ENTITY(Explosive);
 
 class Explosion : public Entity {
-public:
+ public:
   int type() const override { return EntityType::EXPLOSION; }
   std::string Name() const override { return "explosion"; }
   DisplaySymbol Display() const override {
@@ -487,7 +501,7 @@ public:
 REGISTER_ENTITY(Explosion);
 
 class Boulder : public Entity {
-public:
+ public:
   int type() const override { return EntityType::BOULDER; }
   std::string Name() const override { return "boulder"; }
   DisplaySymbol Display() const override { return DisplaySymbol{'O', 50}; }
@@ -500,25 +514,31 @@ public:
         Tag::MOVED_BY_CONVEYOR_BELT,
         Tag::CAN_ACTION_BUTTON_ON_CONVEYOR_BELT,
         Tag::TRIGGER_PROXY_SENSOR,
+        Tag::NON_PASSABLE_WORM,
     };
   }
 };
 REGISTER_ENTITY(Boulder);
 
 class Button : public Entity {
-public:
+ public:
   int type() const override { return EntityType::BUTTON; }
   std::string Name() const override { return "button"; }
   DisplaySymbol Display() const override { return DisplaySymbol{256 + 5, 50}; }
   std::vector<int> Tags() const override {
-    return {Tag::MOVED_BY_CONVEYOR_BELT, Tag::ACTIONABLE, Tag::NON_PASSABLE};
+    return {
+        Tag::MOVED_BY_CONVEYOR_BELT,
+        Tag::ACTIONABLE,
+        Tag::NON_PASSABLE,
+        Tag::NON_PASSABLE_WORM,
+    };
   }
   void ReceiveSignal(int signal, std::shared_ptr<Entity> me, Map *map) override;
 };
 REGISTER_ENTITY(Button);
 
 class ConveyorBelt : public Entity {
-public:
+ public:
   ConveyorBelt() {}
   ConveyorBelt(int direction) : direction_(direction) {}
   int type() const override { return EntityType::CONVEYOR_BELT; }
@@ -528,13 +548,13 @@ public:
   void Step(Output action, std::shared_ptr<Entity> me, Map *map) override;
   int direction() const { return direction_; }
 
-private:
+ private:
   int direction_ = eDirection::RIGHT;
 };
 REGISTER_ENTITY(ConveyorBelt);
 
 class ExplosiveBarel : public Entity {
-public:
+ public:
   int type() const override { return EntityType::EXPLOSIVE_BAREL; }
   std::string Name() const override { return "explosive barel"; }
   void Step(Output action, std::shared_ptr<Entity> me, Map *map) override;
@@ -550,12 +570,13 @@ public:
         Tag::CAN_ACTION_BUTTON_ON_CONVEYOR_BELT,
         Tag::TRIGGER_PROXY_SENSOR,
         Tag::KILLED_BY_AUTOMATIC_METAL_DOOR,
+        Tag::NON_PASSABLE_WORM,
     };
   }
   bool Hurt(int amount, std::shared_ptr<Entity> emiter,
             std::shared_ptr<Entity> me, Map *map) override;
 
-private:
+ private:
   void Explode(std::shared_ptr<Entity> me, Map *map);
   int left_ = 5;
   bool active_ = false;
@@ -563,7 +584,7 @@ private:
 REGISTER_ENTITY(ExplosiveBarel);
 
 class Wire : public Entity {
-public:
+ public:
   int type() const override { return EntityType::WIRE; }
   std::string Name() const override { return "wire"; }
   DisplaySymbol Display() const override {
@@ -575,22 +596,27 @@ public:
 REGISTER_ENTITY(Wire);
 
 class ProxySensor : public Entity {
-public:
+ public:
   int type() const override { return EntityType::PROXY; }
   std::string Name() const override { return "proxy sensor"; }
   DisplaySymbol Display() const override { return DisplaySymbol{'p', 50}; }
   std::vector<int> Tags() const override {
-    return {Tag::MOVED_BY_CONVEYOR_BELT, Tag::ACTIONABLE, Tag::NON_PASSABLE};
+    return {
+        Tag::MOVED_BY_CONVEYOR_BELT,
+        Tag::ACTIONABLE,
+        Tag::NON_PASSABLE,
+        Tag::NON_PASSABLE_WORM,
+    };
   }
   void Step(Output action, std::shared_ptr<Entity> me, Map *map) override;
 
-private:
+ private:
   std::vector<int> last_entity_ids_;
 };
 REGISTER_ENTITY(ProxySensor);
 
 class Message : public Entity {
-public:
+ public:
   Message() {}
   Message(const std::string &message) : message_(message) {}
   int type() const override { return EntityType::MESSAGE; }
@@ -602,14 +628,14 @@ public:
   const std::string &message() const { return message_; }
   void Step(Output action, std::shared_ptr<Entity> me, Map *map) override;
 
-private:
+ private:
   std::vector<int> last_entity_ids_;
   std::string message_;
 };
 REGISTER_ENTITY(Message);
 
 class Turret : public Entity {
-public:
+ public:
   Turret() : Entity(10) {}
   int type() const override { return EntityType::TURRET; }
   std::string Name() const override { return "turret"; }
@@ -628,6 +654,7 @@ public:
         Tag::TRIGGER_PROXY_SENSOR,
         Tag::KILLED_BY_AUTOMATIC_METAL_DOOR,
         Tag::ANT_TARGET,
+        Tag::NON_PASSABLE_WORM,
     };
   }
   void Step(Output action, std::shared_ptr<Entity> me, Map *map) override;
@@ -635,14 +662,14 @@ public:
   bool Hurt(int amount, std::shared_ptr<Entity> emiter,
             std::shared_ptr<Entity> me, Map *map) override;
 
-private:
+ private:
   int attack_left_ = 0;
   int attack_dir = 1;
 };
 REGISTER_ENTITY(Turret);
 
 class Robot : public Entity {
-public:
+ public:
   Robot() : Entity(10) {}
   int type() const override { return EntityType::ROBOT; }
   std::string Name() const override { return "robot"; }
@@ -661,6 +688,8 @@ public:
         Tag::TRIGGER_PROXY_SENSOR,
         Tag::KILLED_BY_AUTOMATIC_METAL_DOOR,
         Tag::ANT_TARGET,
+        Tag::WORM_TARGET,
+        Tag::NON_PASSABLE_WORM,
     };
   }
   void Step(Output action, std::shared_ptr<Entity> me, Map *map) override;
@@ -668,7 +697,7 @@ public:
   bool Hurt(int amount, std::shared_ptr<Entity> emiter,
             std::shared_ptr<Entity> me, Map *map) override;
 
-private:
+ private:
   Output StepAI(std::shared_ptr<Entity> me, Map *map);
   void StepExecutePlan(Output action, std::shared_ptr<Entity> me, Map *map);
   bool attacking_ = false;
@@ -676,7 +705,7 @@ private:
 REGISTER_ENTITY(Robot);
 
 class Goliat : public Entity {
-public:
+ public:
   Goliat() : Entity(30) {}
   int type() const override { return EntityType::GOLIAT; }
   std::string Name() const override { return "goliat"; }
@@ -694,6 +723,8 @@ public:
         Tag::MOVED_BY_CONVEYOR_BELT,
         Tag::TRIGGER_PROXY_SENSOR,
         Tag::ANT_TARGET,
+        Tag::WORM_TARGET,
+        Tag::NON_PASSABLE_WORM,
     };
   }
   void Step(Output action, std::shared_ptr<Entity> me, Map *map) override;
@@ -701,7 +732,7 @@ public:
   bool Hurt(int amount, std::shared_ptr<Entity> emiter,
             std::shared_ptr<Entity> me, Map *map) override;
 
-private:
+ private:
   Output StepAI(std::shared_ptr<Entity> me, Map *map);
   void StepExecutePlan(Output action, std::shared_ptr<Entity> me, Map *map);
   bool attacking_ = false;
@@ -709,7 +740,7 @@ private:
 REGISTER_ENTITY(Goliat);
 
 class Laser : public Entity {
-public:
+ public:
   Laser() {}
   Laser(int dir) : dir_(dir) {}
   int type() const override { return EntityType::LASER; }
@@ -719,14 +750,14 @@ public:
   void Step(Output action, std::shared_ptr<Entity> me, Map *map) override;
   bool TestPos(const Vector2i &pos, std::shared_ptr<Entity> me, Map *map);
 
-private:
+ private:
   int dir_ = 1;
 };
 REGISTER_ENTITY(Laser);
 
 class Worm : public Entity {
-public:
-  Worm() : Entity(20) {}
+ public:
+  Worm() : Entity(10) {}
   int type() const override { return EntityType::WORM; }
   std::string Name() const override { return "worm"; }
   DisplaySymbol Display() const override;
@@ -741,25 +772,52 @@ public:
         Tag::TRIGGER_PROXY_SENSOR,
         Tag::KILLED_BY_AUTOMATIC_METAL_DOOR,
         Tag::ROBOT_TARGET,
+        Tag::NON_PASSABLE_WORM,
     };
   }
   void Step(Output action, std::shared_ptr<Entity> me, Map *map) override;
 
-private:
-  typedef std::vector<std::shared_ptr<Entity>> Segments;
+ private:
+  typedef std::vector<std::shared_ptr<Worm>> Segments;
+  typedef std::list<std::shared_ptr<Worm>> SegmentList;
 
   void MoveSegments(const Vector2i &new_pos, std::shared_ptr<Entity> me,
                     Map *map, Segments *segments);
-  Segments ListSegments();
-   Segments AutoListSegments();
+
+  // Returns <,true> is the segmentation is new (e.g. new worm, recently cut
+  // worm).
+  std::pair<Segments, bool> ListSegments(std::shared_ptr<Entity> me, Map *map);
+
+  void ListSegments(std::shared_ptr<Entity> me, Map *map, bool next,
+                    SegmentList *segments, bool *changed);
   void KillSegments(Segments *segments, Map *map);
-  Output StepAI(const Segments &segments, std::shared_ptr<Entity> me, Map *map);
-  void StepExecutePlan(Output action, std::shared_ptr<Entity> me, Map *map,
+  Output StepAI(const Segments &segments, std::shared_ptr<Worm> head, Map *map);
+  void StepExecutePlan(Output action, std::shared_ptr<Worm> head, Map *map,
                        Segments *segments);
 
+  static void PrintSegments(const Segments &segments);
+
+  Output RandomMove(const Segments &segments, std::shared_ptr<Worm> head,
+                    Map *map);
+
+  static void ReverseSegments(Segments *segments);
+
+  void EqualizeSegmentHp(Segments *segments, Map *map);
+
+  void SetTarget(Vector2i pos, Map *map) {
+    last_target_ = pos;
+    last_target_time_ = map->time();
+  }
+
   int last_run_ = -1;
-  int prev_dir_ = -1;
-  int next_dir_ = -1;
+  int dir_[2] = {eDirection::RIGHT, eDirection::LEFT};
+
+  // Time of the last time the worms turned when is was not necessary to do so.
+  int last_non_necessary_turn_ = 0;
+  int num_blocked = 0;
+
+  std::optional<Vector2i> last_target_;
+  int last_target_time_ = 0;
 };
 REGISTER_ENTITY(Worm);
 
@@ -780,6 +838,6 @@ void CreateExplosion(const Vector2i &position, std::shared_ptr<Entity> me,
 
 void SendSignal(Vector2i pos, Map *map, int signal);
 
-} // namespace common_game
-} // namespace exploratron
+}  // namespace common_game
+}  // namespace exploratron
 #endif

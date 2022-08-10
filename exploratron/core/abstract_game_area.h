@@ -22,8 +22,8 @@ class Map;
 class AbstractGameArena;
 
 struct DisplaySymbol {
-  int symbol_; // The first 256 values are characters. The next ones are
-               // symbols.
+  int symbol_;  // The first 256 values are characters. The next ones are
+                // symbols.
   int priotity_;
   bool visible_ = true;
   bool help_ = true;
@@ -39,7 +39,7 @@ struct Action {
 };
 
 class Entity {
-public:
+ public:
   Entity() : hp_(1) {}
   Entity(int hp) : hp_(hp) { DCHECK_GT(hp_, 0); }
   virtual ~Entity() = default;
@@ -63,7 +63,8 @@ public:
   int born_step() const { return born_step_; }
   bool HasTag(int tag) const;
 
-  Output RandomDirection(int blocking_tag, Map *map);
+  Output RandomDirection(int blocking_tag, Map *map,
+                         const float proba_stand = 0.5);
   Output GoToDirect(int blocking_tag, Vector2i dst, Map *map,
                     bool melle_attack);
   std::optional<Output> Patrol(int blocking_tag, int not_visible_tag,
@@ -77,7 +78,7 @@ public:
 
   int last_conveyor_move_time_ = -1;
 
-private:
+ private:
   int id_ = -1;
   int born_step_ = -1;
   bool contolled_ = false;
@@ -90,15 +91,15 @@ private:
 };
 
 class Cell {
-public:
-  bool HasTag(int tag);
-  std::shared_ptr<Entity> HasEntity(int type);
+ public:
+  bool HasTag(int tag) const;
+  std::shared_ptr<Entity> HasEntity(int type) const;
 
   std::vector<std::shared_ptr<Entity>> entities_;
 };
 
 class Map {
-public:
+ public:
   Map(AbstractGameArena *parent, Vector2i size);
 
   Cell &cell(Vector2i p) { return cells_[CellIdx(p)]; }
@@ -128,9 +129,8 @@ public:
                                                            int not_visible_tag,
                                                            int max_dist);
 
-  std::vector<std::shared_ptr<Entity>>
-  ListVisibleEntitiesByType(Vector2i pos, int entity_type, int not_visible_tag,
-                            int max_dist);
+  std::vector<std::shared_ptr<Entity>> ListVisibleEntitiesByType(
+      Vector2i pos, int entity_type, int not_visible_tag, int max_dist);
 
   bool LineWithoutTag(Vector2i p1, Vector2i p2, int tag);
   void IterateLine(Vector2i p1, Vector2i p2,
@@ -146,7 +146,7 @@ public:
   void Explode(Vector2i pos, int radius,
                std::function<bool(const Vector2i &)> explore);
 
-private:
+ private:
   void AddEntityImplem(std::shared_ptr<Entity> entity);
   void RemoveEntityImplem(std::shared_ptr<Entity> entity);
   void MoveEntityImplem(Vector2i new_pos, std::shared_ptr<Entity> entity);
@@ -169,7 +169,7 @@ private:
 };
 
 class AbstractGameArena : public AbstractArena {
-public:
+ public:
   AbstractGameArena(
       const std::vector<const AbstractControllerBuilder *> &controller_builders,
       const MapDef &map_definition);
@@ -188,7 +188,7 @@ public:
   std::unique_ptr<AbstractController> controller_;
   std::vector<std::pair<int, std::string>> logs_;
 
-private:
+ private:
 };
 
 struct EntityDef {
@@ -197,18 +197,18 @@ struct EntityDef {
 
 inline std::unordered_map<int, EntityDef> global_registered_entities;
 
-#define REGISTER_ENTITY(X)                                                     \
-  inline struct Register##X {                                                  \
-    Register##X() {                                                            \
-      ::exploratron::abstract_game_area::EntityDef def;                        \
-      def.builder = []() -> std::shared_ptr<Entity> {                          \
-        return std::make_shared<X>();                                          \
-      };                                                                       \
-      ::exploratron::abstract_game_area::global_registered_entities            \
-          [def.builder()->type()] = def;                                       \
-    }                                                                          \
+#define REGISTER_ENTITY(X)                                          \
+  inline struct Register##X {                                       \
+    Register##X() {                                                 \
+      ::exploratron::abstract_game_area::EntityDef def;             \
+      def.builder = []() -> std::shared_ptr<Entity> {               \
+        return std::make_shared<X>();                               \
+      };                                                            \
+      ::exploratron::abstract_game_area::global_registered_entities \
+          [def.builder()->type()] = def;                            \
+    }                                                               \
   } register_##X;
 
-} // namespace abstract_game_area
-} // namespace exploratron
+}  // namespace abstract_game_area
+}  // namespace exploratron
 #endif

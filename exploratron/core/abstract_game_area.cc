@@ -145,7 +145,7 @@ void Map::ApplyPending() {
   pending_to_move_.clear();
 }
 
-bool Cell::HasTag(int tag) {
+bool Cell::HasTag(int tag) const {
   // TODO: Optimize.
   for (const auto &e : entities_) {
     auto tags = e->Tags();
@@ -156,7 +156,7 @@ bool Cell::HasTag(int tag) {
   return false;
 }
 
-std::shared_ptr<Entity> Cell::HasEntity(int type) {
+std::shared_ptr<Entity> Cell::HasEntity(int type) const {
   for (const auto &e : entities_) {
     if (e->type() == type) {
       return e;
@@ -177,9 +177,8 @@ std::vector<std::shared_ptr<Entity>> Map::ListEntitiesWithTag(int filter_tag) {
   return ret;
 }
 
-std::vector<std::shared_ptr<Entity>>
-Map::ListVisibleEntities(Vector2i pos, int filter_tag, int not_visible_tag,
-                         int max_dist) {
+std::vector<std::shared_ptr<Entity>> Map::ListVisibleEntities(
+    Vector2i pos, int filter_tag, int not_visible_tag, int max_dist) {
   const auto max_dist2 = max_dist * max_dist;
   std::vector<std::pair<int, std::shared_ptr<Entity>>> entities;
   for (const auto &e : entities_) {
@@ -208,9 +207,8 @@ Map::ListVisibleEntities(Vector2i pos, int filter_tag, int not_visible_tag,
   return ret;
 }
 
-std::vector<std::shared_ptr<Entity>>
-Map::ListVisibleEntitiesByType(Vector2i pos, int entity_type,
-                               int not_visible_tag, int max_dist) {
+std::vector<std::shared_ptr<Entity>> Map::ListVisibleEntitiesByType(
+    Vector2i pos, int entity_type, int not_visible_tag, int max_dist) {
   const auto max_dist2 = max_dist * max_dist;
   std::vector<std::pair<int, std::shared_ptr<Entity>>> entities;
   for (const auto &e : entities_) {
@@ -415,6 +413,10 @@ std::optional<Vector2i> Map::RandomNonOccupiedCell(std::mt19937_64 *rnd) const {
 Map::Map(AbstractGameArena *parent, Vector2i size)
     : size_(size), next_entity_id_(0), parent_(parent) {
   cells_.resize(size.Size());
+
+  std::random_device rnd_device;
+  std::seed_seq seed{rnd_device()};
+  rnd_.seed(seed);
 }
 
 void AbstractGameArena::AddEntity(const Vector2i &pos,
@@ -489,11 +491,14 @@ bool Entity::HasTag(int tag) const {
   return std::find(tags.begin(), tags.end(), tag) != tags.end();
 }
 
-Output Entity::RandomDirection(int blocking_tag, Map *map) {
+Output Entity::RandomDirection(int blocking_tag, Map *map,
+                               const float proba_stand) {
   Output action;
-  int dir_idx = std::uniform_int_distribution<int>(0, 8)(map->rnd());
-  if (dir_idx > 10) {
-    dir_idx = 0;
+  int dir_idx = 0;
+
+  if (proba_stand == 0 ||
+      std::uniform_real_distribution<float>(0, 1)(map->rnd()) > proba_stand) {
+    dir_idx = std::uniform_int_distribution<int>(1, 4)(map->rnd());
   }
   action.move = (eDirection)dir_idx;
   action.action = eAction::MOVE;
@@ -592,7 +597,6 @@ void Map::Explode(Vector2i pos, int radius,
   for (p.y = 0; p.y < size_.y; p.y++) {
     for (p.x = 0; p.x < size_.x; p.x++) {
       if ((p - pos).Length2() <= radius2) {
-
         IterateLine(pos, p, [&](const Vector2i &cp) {
           auto &visited_item = visited[CellIdx(cp)];
           if (visited_item == 2) {
@@ -613,5 +617,5 @@ void Map::Explode(Vector2i pos, int radius,
   }
 }
 
-} // namespace abstract_game_area
-} // namespace exploratron
+}  // namespace abstract_game_area
+}  // namespace exploratron

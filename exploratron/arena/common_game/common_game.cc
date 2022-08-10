@@ -1,8 +1,9 @@
 #include "exploratron/arena/common_game/common_game.h"
 
+#include <stdio.h>
+
 #include <queue>
 #include <random>
-#include <stdio.h>
 #include <unordered_set>
 #include <vector>
 
@@ -80,101 +81,101 @@ void InitializeFromTmx(std::string_view path, AbstractGameArena *arena) {
   const auto builder = [&](Vector2i pos, int symbol,
                            const std::string &message) {
     switch (symbol) {
-    case 0:
-    case ' ':
-      break;
-    case 219:
-      arena->AddEntity(pos, std::make_shared<common_game::Wall>());
-      break;
-    case 'a':
-      arena->AddEntity(pos, std::make_shared<common_game::Ant>());
-      break;
-    case 2: {
-      auto player = std::make_shared<common_game::Player>();
-      player->SetControlled(true);
-      arena->AddEntity(pos, std::move(player));
-    } break;
-    case ',':
-      arena->AddEntity(pos, std::make_shared<common_game::PatrolRoute>());
-      break;
-    case '"':
-      arena->AddEntity(pos, std::make_shared<common_game::Fungus>());
-      break;
-    case '&':
-      arena->AddEntity(pos, std::make_shared<common_game::SoftWall>());
-      break;
-    case 'f':
-      arena->AddEntity(pos, std::make_shared<common_game::Food>());
-      break;
-    case 'x':
-      arena->AddEntity(pos, std::make_shared<common_game::Explosive>());
-      break;
-    case '>':
-      arena->AddEntity(pos, std::make_shared<common_game::ExitDoor>());
-      break;
-    case 'U':
-      arena->AddEntity(pos, std::make_shared<common_game::UnbreakableWall>());
-      break;
-    case 'O':
-      arena->AddEntity(pos, std::make_shared<common_game::Boulder>());
-      break;
-    case 'A':
-      arena->AddEntity(pos, std::make_shared<common_game::AntQueen>());
-      break;
+      case 0:
+      case ' ':
+        break;
+      case 219:
+        arena->AddEntity(pos, std::make_shared<common_game::Wall>());
+        break;
+      case 'a':
+        arena->AddEntity(pos, std::make_shared<common_game::Ant>());
+        break;
+      case 2: {
+        auto player = std::make_shared<common_game::Player>();
+        player->SetControlled(true);
+        arena->AddEntity(pos, std::move(player));
+      } break;
+      case ',':
+        arena->AddEntity(pos, std::make_shared<common_game::PatrolRoute>());
+        break;
+      case '"':
+        arena->AddEntity(pos, std::make_shared<common_game::Fungus>());
+        break;
+      case '&':
+        arena->AddEntity(pos, std::make_shared<common_game::SoftWall>());
+        break;
+      case 'f':
+        arena->AddEntity(pos, std::make_shared<common_game::Food>());
+        break;
+      case 'x':
+        arena->AddEntity(pos, std::make_shared<common_game::Explosive>());
+        break;
+      case '>':
+        arena->AddEntity(pos, std::make_shared<common_game::ExitDoor>());
+        break;
+      case 'U':
+        arena->AddEntity(pos, std::make_shared<common_game::UnbreakableWall>());
+        break;
+      case 'O':
+        arena->AddEntity(pos, std::make_shared<common_game::Boulder>());
+        break;
+      case 'A':
+        arena->AddEntity(pos, std::make_shared<common_game::AntQueen>());
+        break;
 
-    case '+':
-      arena->AddEntity(pos, std::make_shared<common_game::AutomaticDoor>());
-      break;
-    case 255: // button
-      arena->AddEntity(pos, std::make_shared<common_game::Button>());
-      break;
-    case 24: // up
-      arena->AddEntity(
-          pos, std::make_shared<common_game::ConveyorBelt>(eDirection::UP));
-      break;
-    case 25: // down
-      arena->AddEntity(
-          pos, std::make_shared<common_game::ConveyorBelt>(eDirection::DOWN));
-      break;
-    case 26: // right
-      arena->AddEntity(
-          pos, std::make_shared<common_game::ConveyorBelt>(eDirection::RIGHT));
-      break;
-    case 27: // left
-      arena->AddEntity(
-          pos, std::make_shared<common_game::ConveyorBelt>(eDirection::LEFT));
-      break;
-    case 254: // steel wall
-      arena->AddEntity(pos, std::make_shared<common_game::SteelWall>());
-      break;
-    case 'X': // explosive barel
-      arena->AddEntity(pos, std::make_shared<common_game::ExplosiveBarel>());
-      break;
-    case '.':
-      arena->AddEntity(pos, std::make_shared<common_game::Wire>());
-      break;
-    case 'p':
-      arena->AddEntity(pos, std::make_shared<common_game::ProxySensor>());
-      break;
-    case '?':
-      arena->AddEntity(pos, std::make_shared<common_game::Message>(message));
-      break;
-    case 't':
-      arena->AddEntity(pos, std::make_shared<common_game::Turret>());
-      break;
-    case 'r':
-      arena->AddEntity(pos, std::make_shared<common_game::Robot>());
-      break;
-    case 'G':
-      arena->AddEntity(pos, std::make_shared<common_game::Goliat>());
-      break;
-    case 'W':
-      arena->AddEntity(pos, std::make_shared<common_game::Worm>());
-      break;
+      case '+':
+        arena->AddEntity(pos, std::make_shared<common_game::AutomaticDoor>());
+        break;
+      case 255:  // button
+        arena->AddEntity(pos, std::make_shared<common_game::Button>());
+        break;
+      case 24:  // up
+        arena->AddEntity(
+            pos, std::make_shared<common_game::ConveyorBelt>(eDirection::UP));
+        break;
+      case 25:  // down
+        arena->AddEntity(
+            pos, std::make_shared<common_game::ConveyorBelt>(eDirection::DOWN));
+        break;
+      case 26:  // right
+        arena->AddEntity(pos, std::make_shared<common_game::ConveyorBelt>(
+                                  eDirection::RIGHT));
+        break;
+      case 27:  // left
+        arena->AddEntity(
+            pos, std::make_shared<common_game::ConveyorBelt>(eDirection::LEFT));
+        break;
+      case 254:  // steel wall
+        arena->AddEntity(pos, std::make_shared<common_game::SteelWall>());
+        break;
+      case 'X':  // explosive barel
+        arena->AddEntity(pos, std::make_shared<common_game::ExplosiveBarel>());
+        break;
+      case '.':
+        arena->AddEntity(pos, std::make_shared<common_game::Wire>());
+        break;
+      case 'p':
+        arena->AddEntity(pos, std::make_shared<common_game::ProxySensor>());
+        break;
+      case '?':
+        arena->AddEntity(pos, std::make_shared<common_game::Message>(message));
+        break;
+      case 't':
+        arena->AddEntity(pos, std::make_shared<common_game::Turret>());
+        break;
+      case 'r':
+        arena->AddEntity(pos, std::make_shared<common_game::Robot>());
+        break;
+      case 'G':
+        arena->AddEntity(pos, std::make_shared<common_game::Goliat>());
+        break;
+      case 'W':
+        arena->AddEntity(pos, std::make_shared<common_game::Worm>());
+        break;
 
-    default:
-      LOG(FATAL) << "Symbol " << symbol << "(" << (char)symbol << ") unknown";
-      break;
+      default:
+        LOG(FATAL) << "Symbol " << symbol << "(" << (char)symbol << ") unknown";
+        break;
     }
   };
   InitializeFromTmx(path, builder, arena);
@@ -185,7 +186,6 @@ void InitializeFromTmx(
     std::function<void(Vector2i pos, int symbol, const std::string &message)>
         builder,
     AbstractGameArena *arena) {
-
   tinyxml2::XMLDocument doc;
   doc.LoadFile(std::string(path).c_str());
   auto *map = doc.FirstChildElement("map");
@@ -234,7 +234,6 @@ void InitializeFromTmx(
     while (cur_objectgroup != nullptr) {
       auto *cur_object = cur_objectgroup->FirstChildElement("object");
       while (cur_object != nullptr) {
-
         int gid = cur_object->IntAttribute("gid");
         int x = cur_object->IntAttribute("x");
         int y = cur_object->IntAttribute("y");
@@ -247,7 +246,6 @@ void InitializeFromTmx(
         CHECK(cur_properties);
         auto *cur_property = cur_properties->FirstChildElement("property");
         while (cur_property != nullptr) {
-
           auto *raw_name = cur_property->Attribute("name");
           auto *raw_value = cur_property->Attribute("value");
           if (std::strcmp(raw_name, "message") == 0) {
@@ -382,45 +380,45 @@ Output Ant::StepAI(std::shared_ptr<Entity> me, Map *map) {
 
 void Ant::StepExecutePlan(Output action, std::shared_ptr<Entity> me, Map *map) {
   switch (action.action) {
-  case eAction::MOVE: {
-    Vector2i dir(action.move);
-    Vector2i new_pos = position() + dir;
-    if (!map->Contains(new_pos)) {
-      break;
-    }
-    const auto &cell = map->cell(new_pos);
-
-    bool passable = true;
-    for (const auto &e : cell.entities_) {
-      if (e->type() == EntityType::CONVEYOR_BELT &&
-          dynamic_cast<ConveyorBelt *>(e.get())->direction() ==
-              ReverseDirection(action.move)) {
-        passable = false;
-      }
-      if (e->HasTag(Tag::NON_PASSABLE)) {
-        passable = false;
-      }
-    }
-
-    if (!passable) {
-      break;
-    }
-    map->MoveEntity(new_pos, me);
-  } break;
-
-  case eAction::MELLE_ATTACK: {
-    Vector2i dir(action.move);
-    Vector2i new_pos = position() + dir;
-    if (!map->Contains(new_pos)) {
-      break;
-    }
-    for (const auto &e : map->cell(new_pos).entities_) {
-      if (e->HasTag(Tag::ANT_TARGET)) {
-        e->Hurt(1, me, e, map);
+    case eAction::MOVE: {
+      Vector2i dir(action.move);
+      Vector2i new_pos = position() + dir;
+      if (!map->Contains(new_pos)) {
         break;
       }
-    }
-  } break;
+      const auto &cell = map->cell(new_pos);
+
+      bool passable = true;
+      for (const auto &e : cell.entities_) {
+        if (e->type() == EntityType::CONVEYOR_BELT &&
+            dynamic_cast<ConveyorBelt *>(e.get())->direction() ==
+                ReverseDirection(action.move)) {
+          passable = false;
+        }
+        if (e->HasTag(Tag::NON_PASSABLE)) {
+          passable = false;
+        }
+      }
+
+      if (!passable) {
+        break;
+      }
+      map->MoveEntity(new_pos, me);
+    } break;
+
+    case eAction::MELLE_ATTACK: {
+      Vector2i dir(action.move);
+      Vector2i new_pos = position() + dir;
+      if (!map->Contains(new_pos)) {
+        break;
+      }
+      for (const auto &e : map->cell(new_pos).entities_) {
+        if (e->HasTag(Tag::ANT_TARGET)) {
+          e->Hurt(1, me, e, map);
+          break;
+        }
+      }
+    } break;
   }
 }
 
@@ -460,41 +458,41 @@ Output AntQueen::StepAI(std::shared_ptr<Entity> me, Map *map) {
 void AntQueen::StepExecutePlan(Output action, std::shared_ptr<Entity> me,
                                Map *map) {
   switch (action.action) {
-  case eAction::MOVE: {
-    Vector2i dir(action.move);
-    Vector2i new_pos = position() + dir;
-    if (!map->cell(new_pos).HasTag(Tag::NON_PASSABLE)) {
-      map->MoveEntity(new_pos, me);
-    }
-  } break;
-
-  case eAction::MELLE_ATTACK: {
-    Vector2i dir(action.move);
-    Vector2i new_pos = position() + dir;
-    for (const auto &e : map->cell(new_pos).entities_) {
-      if (e->HasTag(Tag::ANT_TARGET)) {
-        e->Hurt(1, me, e, map);
-        break;
+    case eAction::MOVE: {
+      Vector2i dir(action.move);
+      Vector2i new_pos = position() + dir;
+      if (!map->cell(new_pos).HasTag(Tag::NON_PASSABLE)) {
+        map->MoveEntity(new_pos, me);
       }
-    }
-  } break;
+    } break;
 
-  case eAction::MAGIC: {
-    switch (action.magic_idx) {
-    case eMagic::CREATE_ANT: {
-      map->AddLog("ant queen lay eggs");
-      for (int dir = 1; dir < eDirection::_NUM_DIRECTIONS; dir++) {
-        auto target_pos = position() + Vector2i(dir);
-        auto &target_cell = map->cell(target_pos);
-        if (!target_cell.HasEntity(Tag::NON_PASSABLE)) {
-          auto ant = std::make_shared<Ant>();
-          ant->SetTarget(action.target, map);
-          map->AddEntity(target_pos, ant);
+    case eAction::MELLE_ATTACK: {
+      Vector2i dir(action.move);
+      Vector2i new_pos = position() + dir;
+      for (const auto &e : map->cell(new_pos).entities_) {
+        if (e->HasTag(Tag::ANT_TARGET)) {
+          e->Hurt(1, me, e, map);
+          break;
         }
       }
     } break;
+
+    case eAction::MAGIC: {
+      switch (action.magic_idx) {
+        case eMagic::CREATE_ANT: {
+          map->AddLog("ant queen lay eggs");
+          for (int dir = 1; dir < eDirection::_NUM_DIRECTIONS; dir++) {
+            auto target_pos = position() + Vector2i(dir);
+            auto &target_cell = map->cell(target_pos);
+            if (!target_cell.HasEntity(Tag::NON_PASSABLE)) {
+              auto ant = std::make_shared<Ant>();
+              ant->SetTarget(action.target, map);
+              map->AddEntity(target_pos, ant);
+            }
+          }
+        } break;
+      }
     }
-  }
   }
 }
 
@@ -508,12 +506,12 @@ std::vector<Action> AntQueen::AvailableMagics() const {
 
 void Player::Step(Output action, std::shared_ptr<Entity> me, Map *map) {
   switch (action.action) {
-  case eAction::MOVE:
-    StepMove(action, me, map);
-    break;
-  case eAction::MAGIC:
-    StepMagic(action, me, map);
-    break;
+    case eAction::MOVE:
+      StepMove(action, me, map);
+      break;
+    case eAction::MAGIC:
+      StepMagic(action, me, map);
+      break;
   }
 }
 
@@ -530,7 +528,6 @@ void Player::StepMove(Output action, std::shared_ptr<Entity> me, Map *map) {
 
   bool passable = true;
   for (const auto &e : cell.entities_) {
-
     if (e->type() == EntityType::CONVEYOR_BELT &&
         dynamic_cast<ConveyorBelt *>(e.get())->direction() ==
             ReverseDirection(action.move)) {
@@ -575,17 +572,17 @@ void Player::StepMove(Output action, std::shared_ptr<Entity> me, Map *map) {
     if (e->HasTag(Tag::ITEM)) {
       auto type = e->type();
       switch (type) {
-      case EntityType::FOOD:
-        map->AddLog(absl::StrCat(me->Name(), " find food"));
-        num_food_++;
-        break;
-      case EntityType::EXPLOSIVE:
-        map->AddLog(absl::StrCat(me->Name(), " find explosive"));
-        num_explosive_++;
-        break;
-      default:
-        LOG(FATAL) << "Cannot pick item " << type;
-        break;
+        case EntityType::FOOD:
+          map->AddLog(absl::StrCat(me->Name(), " find food"));
+          num_food_++;
+          break;
+        case EntityType::EXPLOSIVE:
+          map->AddLog(absl::StrCat(me->Name(), " find explosive"));
+          num_explosive_++;
+          break;
+        default:
+          LOG(FATAL) << "Cannot pick item " << type;
+          break;
       }
       map->RemoveEntity(e);
     }
@@ -594,8 +591,9 @@ void Player::StepMove(Output action, std::shared_ptr<Entity> me, Map *map) {
   map->MoveEntity(new_pos, me);
 }
 
-std::optional<Vector2i>
-Player::ThrowPosition(Output action, std::shared_ptr<Entity> me, Map *map) {
+std::optional<Vector2i> Player::ThrowPosition(Output action,
+                                              std::shared_ptr<Entity> me,
+                                              Map *map) {
   std::optional<Vector2i> last_good;
   const auto process_cell = [&](const Vector2i &p) {
     auto &cell = map->cell(p);
@@ -611,64 +609,64 @@ Player::ThrowPosition(Output action, std::shared_ptr<Entity> me, Map *map) {
 
 void Player::StepMagic(Output action, std::shared_ptr<Entity> me, Map *map) {
   switch (action.magic_idx) {
-  case eMagic::FIREBALL: {
-    if (energy_ < 1) {
-      map->AddLog("Not enought energy for fireball");
-      break;
-    }
-    energy_ -= 1;
-
-    Vector2i last_good;
-    bool found_good;
-    const auto process_cell = [&](const Vector2i &p) {
-      auto &cell = map->cell(p);
-      if (cell.HasTag(Tag::WALL_LIKE)) {
-        return false;
+    case eMagic::FIREBALL: {
+      if (energy_ < 1) {
+        map->AddLog("Not enought energy for fireball");
+        break;
       }
-      found_good = true;
-      last_good = p;
-      for (auto &e : cell.entities_) {
-        if (e->HasTag(Tag::PLAYER_TARGET)) {
-          e->Hurt(1, me, e, map);
+      energy_ -= 1;
+
+      Vector2i last_good;
+      bool found_good;
+      const auto process_cell = [&](const Vector2i &p) {
+        auto &cell = map->cell(p);
+        if (cell.HasTag(Tag::WALL_LIKE)) {
           return false;
         }
+        found_good = true;
+        last_good = p;
+        for (auto &e : cell.entities_) {
+          if (e->HasTag(Tag::PLAYER_TARGET)) {
+            e->Hurt(1, me, e, map);
+            return false;
+          }
+        }
+        return true;
+      };
+      map->IterateLine(me->position(), action.target, process_cell);
+      if (found_good) {
+        map->AddEntity(last_good, std::make_shared<Fire>());
+        map->AddLog(Name() + " throws fireball");
       }
-      return true;
-    };
-    map->IterateLine(me->position(), action.target, process_cell);
-    if (found_good) {
-      map->AddEntity(last_good, std::make_shared<Fire>());
-      map->AddLog(Name() + " throws fireball");
-    }
-  } break;
+    } break;
 
-  case eMagic::THROW_FOOD: {
-    if (num_food_ < 1) {
-      map->AddLog("No food to throw");
-      break;
-    }
-    num_food_ -= 1;
+    case eMagic::THROW_FOOD: {
+      if (num_food_ < 1) {
+        map->AddLog("No food to throw");
+        break;
+      }
+      num_food_ -= 1;
 
-    auto target_pos = ThrowPosition(action, me, map);
-    if (target_pos.has_value()) {
-      map->AddLog(Name() + " throws food");
-      map->AddEntity(target_pos.value(), std::make_shared<Food>());
-    }
-  } break;
+      auto target_pos = ThrowPosition(action, me, map);
+      if (target_pos.has_value()) {
+        map->AddLog(Name() + " throws food");
+        map->AddEntity(target_pos.value(), std::make_shared<Food>());
+      }
+    } break;
 
-  case eMagic::EXPLOSIVE: {
-    if (num_explosive_ < 1) {
-      map->AddLog("No explosive to throw");
-      break;
-    }
-    num_explosive_ -= 1;
+    case eMagic::EXPLOSIVE: {
+      if (num_explosive_ < 1) {
+        map->AddLog("No explosive to throw");
+        break;
+      }
+      num_explosive_ -= 1;
 
-    auto target_pos = ThrowPosition(action, me, map);
-    if (target_pos.has_value()) {
-      map->AddLog(Name() + " throws explosive");
-      map->AddEntity(target_pos.value(), std::make_shared<Explosive>(true));
-    }
-  } break;
+      auto target_pos = ThrowPosition(action, me, map);
+      if (target_pos.has_value()) {
+        map->AddLog(Name() + " throws explosive");
+        map->AddEntity(target_pos.value(), std::make_shared<Explosive>(true));
+      }
+    } break;
   }
 }
 
@@ -1038,7 +1036,6 @@ void AutomaticDoor::Step(Output action, std::shared_ptr<Entity> me, Map *map) {
 }
 
 void ProxySensor::Step(Output action, std::shared_ptr<Entity> me, Map *map) {
-
   std::vector<int> entity_ids;
 
   for (int x = -1; x <= 1; x++) {
@@ -1207,45 +1204,45 @@ Output Robot::StepAI(std::shared_ptr<Entity> me, Map *map) {
 void Robot::StepExecutePlan(Output action, std::shared_ptr<Entity> me,
                             Map *map) {
   switch (action.action) {
-  case eAction::MOVE: {
-    Vector2i dir(action.move);
-    Vector2i new_pos = position() + dir;
-    if (!map->Contains(new_pos)) {
-      break;
-    }
-    const auto &cell = map->cell(new_pos);
-
-    bool passable = true;
-    for (const auto &e : cell.entities_) {
-      if (e->type() == EntityType::CONVEYOR_BELT &&
-          dynamic_cast<ConveyorBelt *>(e.get())->direction() ==
-              ReverseDirection(action.move)) {
-        passable = false;
-      }
-      if (e->HasTag(Tag::NON_PASSABLE)) {
-        passable = false;
-      }
-    }
-
-    if (!passable) {
-      break;
-    }
-    map->MoveEntity(new_pos, me);
-  } break;
-
-  case eAction::MELLE_ATTACK: {
-    Vector2i dir(action.move);
-    Vector2i new_pos = position() + dir;
-    if (!map->Contains(new_pos)) {
-      break;
-    }
-    for (const auto &e : map->cell(new_pos).entities_) {
-      if (e->HasTag(Tag::ROBOT_TARGET)) {
-        e->Hurt(2, me, e, map);
+    case eAction::MOVE: {
+      Vector2i dir(action.move);
+      Vector2i new_pos = position() + dir;
+      if (!map->Contains(new_pos)) {
         break;
       }
-    }
-  } break;
+      const auto &cell = map->cell(new_pos);
+
+      bool passable = true;
+      for (const auto &e : cell.entities_) {
+        if (e->type() == EntityType::CONVEYOR_BELT &&
+            dynamic_cast<ConveyorBelt *>(e.get())->direction() ==
+                ReverseDirection(action.move)) {
+          passable = false;
+        }
+        if (e->HasTag(Tag::NON_PASSABLE)) {
+          passable = false;
+        }
+      }
+
+      if (!passable) {
+        break;
+      }
+      map->MoveEntity(new_pos, me);
+    } break;
+
+    case eAction::MELLE_ATTACK: {
+      Vector2i dir(action.move);
+      Vector2i new_pos = position() + dir;
+      if (!map->Contains(new_pos)) {
+        break;
+      }
+      for (const auto &e : map->cell(new_pos).entities_) {
+        if (e->HasTag(Tag::ROBOT_TARGET)) {
+          e->Hurt(2, me, e, map);
+          break;
+        }
+      }
+    } break;
   }
 }
 
@@ -1292,45 +1289,45 @@ Output Goliat::StepAI(std::shared_ptr<Entity> me, Map *map) {
 void Goliat::StepExecutePlan(Output action, std::shared_ptr<Entity> me,
                              Map *map) {
   switch (action.action) {
-  case eAction::MOVE: {
-    Vector2i dir(action.move);
-    Vector2i new_pos = position() + dir;
-    if (!map->Contains(new_pos)) {
-      break;
-    }
-    const auto &cell = map->cell(new_pos);
-
-    bool passable = true;
-    for (const auto &e : cell.entities_) {
-      if (e->type() == EntityType::CONVEYOR_BELT &&
-          dynamic_cast<ConveyorBelt *>(e.get())->direction() ==
-              ReverseDirection(action.move)) {
-        passable = false;
-      }
-      if (e->HasTag(Tag::NON_PASSABLE)) {
-        passable = false;
-      }
-    }
-
-    if (!passable) {
-      break;
-    }
-    map->MoveEntity(new_pos, me);
-  } break;
-
-  case eAction::MELLE_ATTACK: {
-    Vector2i dir(action.move);
-    Vector2i new_pos = position() + dir;
-    if (!map->Contains(new_pos)) {
-      break;
-    }
-    for (const auto &e : map->cell(new_pos).entities_) {
-      if (e->HasTag(Tag::ROBOT_TARGET)) {
-        e->Hurt(5, me, e, map);
+    case eAction::MOVE: {
+      Vector2i dir(action.move);
+      Vector2i new_pos = position() + dir;
+      if (!map->Contains(new_pos)) {
         break;
       }
-    }
-  } break;
+      const auto &cell = map->cell(new_pos);
+
+      bool passable = true;
+      for (const auto &e : cell.entities_) {
+        if (e->type() == EntityType::CONVEYOR_BELT &&
+            dynamic_cast<ConveyorBelt *>(e.get())->direction() ==
+                ReverseDirection(action.move)) {
+          passable = false;
+        }
+        if (e->HasTag(Tag::NON_PASSABLE)) {
+          passable = false;
+        }
+      }
+
+      if (!passable) {
+        break;
+      }
+      map->MoveEntity(new_pos, me);
+    } break;
+
+    case eAction::MELLE_ATTACK: {
+      Vector2i dir(action.move);
+      Vector2i new_pos = position() + dir;
+      if (!map->Contains(new_pos)) {
+        break;
+      }
+      for (const auto &e : map->cell(new_pos).entities_) {
+        if (e->HasTag(Tag::ROBOT_TARGET)) {
+          e->Hurt(5, me, e, map);
+          break;
+        }
+      }
+    } break;
   }
 }
 
@@ -1362,45 +1359,219 @@ bool Goliat::Hurt(int amount, std::shared_ptr<Entity> emiter,
 }
 
 DisplaySymbol Worm::Display() const {
-  return DisplaySymbol{'W', 50, .color = terminal::eColor::YELLOW};
+  char symbol = 'o';
+  if (dir_[0] == 0) {
+    symbol = 'W';
+  } else if (dir_[1] == 0) {
+    symbol = '.';
+  }
+  return DisplaySymbol{symbol, 50, .color = terminal::eColor::YELLOW};
 }
 
-Output Worm::StepAI(const Segments &segments, std::shared_ptr<Entity> me,
+Output Worm::RandomMove(const Worm::Segments &segments,
+                        std::shared_ptr<Worm> head, Map *map) {
+  Output action;
+  action.action = eAction::MOVE;
+
+  auto gen_rnd_float = [&]() -> float {
+    return std::uniform_real_distribution<float>(0, 1)(map->rnd());
+  };
+
+  // Don't use this->pos.
+  const auto &pos = head->position();
+
+  eDirection last_dir = ReverseDirection((eDirection)head->dir_[1]);
+  if (last_dir == 0) {
+    return RandomDirection(Tag::NON_PASSABLE_WORM, map);
+  }
+
+  auto target_pos = pos + Vector2i(last_dir);
+  auto &target_cell = map->cell(target_pos);
+  auto target_passable = !target_cell.HasTag(Tag::NON_PASSABLE_WORM);
+
+  const eDirection left_dir = TurnClock(last_dir);
+  auto target_pos_left = pos + Vector2i(left_dir);
+  auto &target_cell_left = map->cell(target_pos_left);
+  auto target_left_passable = !target_cell_left.HasTag(Tag::NON_PASSABLE_WORM);
+
+  const eDirection right_dir = TurnInverseClock(last_dir);
+  auto target_pos_right = pos + Vector2i(right_dir);
+  auto &target_cell_right = map->cell(target_pos_right);
+  auto target_right_passable =
+      !target_cell_right.HasTag(Tag::NON_PASSABLE_WORM);
+
+  std::vector<eDirection> possible;
+  bool look_side = false;
+  if (target_passable) {
+    possible.push_back(last_dir);
+    if ((map->time() - head->last_non_necessary_turn_) >= 4 &&
+        gen_rnd_float() < 0.15) {
+      look_side = true;
+      head->last_non_necessary_turn_ = map->time();
+    }
+  } else {
+    look_side = true;
+  }
+
+  if (look_side) {
+    if (target_left_passable) {
+      possible.push_back(left_dir);
+    }
+    if (target_right_passable) {
+      possible.push_back(right_dir);
+    }
+  }
+
+  if (possible.empty()) {
+    action.move = eDirection::NONE;
+    head->num_blocked++;
+    if (head->num_blocked > 4) {
+      action.action = eAction::MAGIC;
+      action.magic_idx = 0;  // Reverse segments.
+    }
+    return action;
+  }
+  head->num_blocked = 0;
+
+  std::shuffle(possible.begin(), possible.end(), map->rnd());
+  action.move = possible.front();
+  return action;
+}
+
+void Worm::ReverseSegments(Segments *segments) {
+  std::reverse(segments->begin(), segments->end());
+  for (auto &s : *segments) {
+    std::swap(s->dir_[0], s->dir_[1]);
+  }
+}
+
+Output Worm::StepAI(const Worm::Segments &segments, std::shared_ptr<Worm> head,
                     Map *map) {
-  // TODO
-  // Random walk
-  return RandomDirection(Tag::NON_PASSABLE, map);
+  // Target visible ennemi
+  auto visible_entities = map->ListVisibleEntities(
+      head->position(), Tag::WORM_TARGET, Tag::WALL_LIKE, 20);
+
+  std::shared_ptr<Entity> best_target;
+  bool best_target_is_low_priority;
+  for (auto &e : visible_entities) {
+    if (e.get() == this) {
+      continue;
+    }
+    const bool low_priority = e->HasTag(Tag::WORM_LOW_PRIORITY);
+    if (!best_target) {
+      best_target = e;
+      best_target_is_low_priority = low_priority;
+    } else if (best_target_is_low_priority && !low_priority) {
+      best_target = e;
+      best_target_is_low_priority = false;
+      break;
+    }
+  }
+
+  if (best_target) {
+    // Move/attack toward target
+    last_target_ = best_target->position();
+    last_target_time_ = map->time();
+    auto output =
+        head->GoToDirect(Tag::NON_PASSABLE_WORM, best_target->position(), map,
+                         !best_target->HasTag(Tag::DONT_ATTACK));
+    return output;
+  }
+
+  // Target past visible ennemi
+  if (last_target_.has_value()) {
+    if (last_target_.value() == position() ||
+        (map->time() - last_target_time_) > 20) {
+      last_target_ = {};
+    } else {
+      return head->GoToDirect(Tag::NON_PASSABLE_WORM, last_target_.value(), map,
+                              false);
+    }
+  }
+  return RandomMove(segments, head, map);
 }
 
-void Worm::StepExecutePlan(Output action, std::shared_ptr<Entity> me, Map *map,
-                           Segments *segments) {
+void Worm::MoveSegments(const Vector2i &new_pos, std::shared_ptr<Entity> head,
+                        Map *map, Worm::Segments *segments) {
+  for (int i = segments->size() - 1; i >= 0; i--) {
+    auto &cur = (*segments)[i];
 
+    Vector2i target_pos;
+    if (i > 0) {
+      target_pos = (*segments)[i - 1]->position();
+    } else {
+      target_pos = new_pos;
+    }
+
+    if (i < segments->size() - 1) {
+      auto &next = (*segments)[i + 1];
+      eDirection motion_dir = (target_pos - cur->position()).MajorDir();
+      cur->dir_[1] = ReverseDirection(motion_dir);
+      next->dir_[0] = motion_dir;
+    }
+
+    map->MoveEntity(target_pos, cur);
+  }
+
+  segments->front()->dir_[0] = eDirection::NONE;
+  segments->back()->dir_[1] = eDirection::NONE;
+}
+
+void Worm::StepExecutePlan(Output action, std::shared_ptr<Worm> head, Map *map,
+                           Worm::Segments *segments) {
   switch (action.action) {
-  case eAction::MOVE: {
-    Vector2i dir(action.move);
-    Vector2i new_pos = segments->front()->position() + dir;
-    if (!map->Contains(new_pos)) {
-      break;
-    }
-    const auto &cell = map->cell(new_pos);
+    case eAction::MAGIC: {
+      ReverseSegments(segments);
+    } break;
 
-    bool passable = true;
-    for (const auto &e : cell.entities_) {
-      if (e->type() == EntityType::CONVEYOR_BELT &&
-          dynamic_cast<ConveyorBelt *>(e.get())->direction() ==
-              ReverseDirection(action.move)) {
-        passable = false;
+    case eAction::MOVE: {
+      Vector2i dir(action.move);
+      Vector2i new_pos = segments->front()->position() + dir;
+      if (!map->Contains(new_pos)) {
+        break;
       }
-      if (e->HasTag(Tag::NON_PASSABLE)) {
-        passable = false;
-      }
-    }
+      auto &cell = map->cell(new_pos);
 
-    if (!passable) {
-      break;
-    }
-    MoveSegments(new_pos, me, map, segments);
-  } break;
+      bool passable = true;
+      for (const auto &e : cell.entities_) {
+        if (e->type() == EntityType::CONVEYOR_BELT &&
+            dynamic_cast<ConveyorBelt *>(e.get())->direction() ==
+                ReverseDirection(action.move)) {
+          passable = false;
+        }
+        if (e->HasTag(Tag::NON_PASSABLE_WORM)) {
+          passable = false;
+        }
+      }
+
+      if (!passable) {
+        break;
+      }
+
+      if (cell.HasTag(Tag::NON_PASSABLE)) {
+        for (const auto &e : cell.entities_) {
+          if (e->HasTag(Tag::NON_PASSABLE)) {
+            map->RemoveEntity(e);
+          }
+        }
+      }
+
+      MoveSegments(new_pos, head, map, segments);
+    } break;
+
+    case eAction::MELLE_ATTACK: {
+      Vector2i dir(action.move);
+      Vector2i new_pos = segments->front()->position() + dir;
+      if (!map->Contains(new_pos)) {
+        break;
+      }
+      for (const auto &e : map->cell(new_pos).entities_) {
+        if (e->HasTag(Tag::WORM_TARGET)) {
+          e->Hurt(3, head, e, map);
+          break;
+        }
+      }
+    } break;
   }
 }
 
@@ -1409,28 +1580,95 @@ void Worm::Step(Output action, std::shared_ptr<Entity> me, Map *map) {
     return;
   }
 
-  auto segments = ListSegments();
+  bool changed;
+  Worm::Segments segments;
+  std::tie(segments, changed) = ListSegments(me, map);
+
+  for (auto s : segments) {
+    s->last_run_ = map->time();
+  }
+
+  if (changed) {
+    EqualizeSegmentHp(&segments, map);
+  }
+
   if (segments.size() <= 2) {
     // Too short. Die.
     KillSegments(&segments, map);
     return;
   }
 
+  auto &head = segments.front();
+
   if (action.action == eAction::AI) {
-    action = StepAI(segments, me, map);
+    action = StepAI(segments, head, map);
   }
-  StepExecutePlan(action, me, map, &segments);
+  StepExecutePlan(action, head, map, &segments);
 }
 
-Worm::Segments Worm::AutoListSegments() {
-  // TODO
+void Worm::EqualizeSegmentHp(Segments *segments, Map *map) {
+  int sum_hp = 0;
+  for (const auto &s : *segments) {
+    sum_hp += s->hp();
+  }
+
+  const int hp_per_segement = sum_hp / segments->size();
+  const int last_segment_hp = sum_hp - (segments->size() - 1) * hp_per_segement;
+  (*segments)[0]->SetHp(last_segment_hp, (*segments)[0], map);
+  for (int i = 1; i < segments->size(); i++) {
+    (*segments)[i]->SetHp(hp_per_segement, (*segments)[i], map);
+  }
 }
 
-Worm::Segments Worm::ListSegments() {
-  if (prev_dir_ == -1) {
-    return AutoListSegments();
+void Worm::PrintSegments(const Worm::Segments &segments) {
+  LOG(INFO) << "Segments:                 ";
+  for (const auto &s : segments) {
+    LOG(INFO) << "\tpos:{" << s->position() << "} pred:" << s->dir_[0]
+              << " next: " << s->dir_[1] << "                 ";
   }
-  // TODO.
+}
+
+std::pair<Worm::Segments, bool> Worm::ListSegments(std::shared_ptr<Entity> me,
+                                                   Map *map) {
+  bool changed = false;
+  Worm::SegmentList segment_list;
+  segment_list.push_back(std::dynamic_pointer_cast<Worm>(me));
+  ListSegments(me, map, true, &segment_list, &changed);
+  ListSegments(me, map, false, &segment_list, &changed);
+
+  Worm::Segments segments;
+  segments.insert(segments.end(), segment_list.begin(), segment_list.end());
+  return {segments, changed};
+}
+
+void Worm::ListSegments(std::shared_ptr<Entity> me, Map *map, bool next,
+                        Worm::SegmentList *segments, bool *changed) {
+  const int dir = dir_[next];
+  if (dir <= 0) {
+    return;
+  }
+  const auto target_pos = position() + Vector2i(dir);
+  const auto &target_cell = map->cell(target_pos);
+  for (const auto &e : target_cell.entities_) {
+    if (e->type() != EntityType::WORM) {
+      continue;
+    }
+    auto target_worm = std::dynamic_pointer_cast<Worm>(e);
+    DCHECK(target_worm);
+    if (target_worm->last_run_ == map->time()) {
+      continue;
+    }
+    target_worm->dir_[!next] = ReverseDirection((eDirection)dir);
+    if (next) {
+      segments->push_back(target_worm);
+    } else {
+      segments->push_front(target_worm);
+    }
+    target_worm->ListSegments(target_worm, map, next, segments, changed);
+    return;
+  }
+
+  *changed = true;
 }
 
 void Worm::KillSegments(Segments *segments, Map *map) {
@@ -1439,11 +1677,5 @@ void Worm::KillSegments(Segments *segments, Map *map) {
   }
 }
 
-void Worm::MoveSegments(const Vector2i &new_pos, std::shared_ptr<Entity> me,
-                        Map *map, Segments *segments) {
-  //    map->MoveEntity(new_pos, me);
-  // TODO
-}
-
-} // namespace common_game
-} // namespace exploratron
+}  // namespace common_game
+}  // namespace exploratron

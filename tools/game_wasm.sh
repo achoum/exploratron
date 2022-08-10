@@ -10,5 +10,4 @@ bazel --output_base=/mnt/c/tmp/bazel build $MODE //exploratron/web:pack_game $FL
 # Start a local http server for the game.
 rm -fr compiled_web_game
 cp -R bazel-bin/exploratron/web/compiled_web_game compiled_web_game
-#( cd compiled_web_game/www && npm install xterm ) # xterm-addon-fit
 ( cd compiled_web_game && ./start_server.sh )

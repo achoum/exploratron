@@ -19,6 +19,9 @@
 #include "exploratron/core/evaluate.h"
 #include "exploratron/core/utils/terminal.h"
 
+ABSL_FLAG(std::string, map, "",
+          "Path to tmx file. If set, load this word at startup.");
+
 namespace exploratron {
 
 constexpr char kVersion[] = "0.2";
@@ -47,62 +50,66 @@ enum class eControls {
   ENTER,
   HELP,
   RESET,
+  HARD_QUIT,
 };
 
 eDirection ControlToDirection(const eControls a) {
   switch (a) {
-  case eControls::WAIT:
-    return eDirection::NONE;
-  case eControls::UP:
-    return eDirection::UP;
-  case eControls::LEFT:
-    return eDirection::LEFT;
-  case eControls::DOWN:
-    return eDirection::DOWN;
-  case eControls::RIGHT:
-    return eDirection::RIGHT;
-  default:
-    return eDirection::NONE;
+    case eControls::WAIT:
+      return eDirection::NONE;
+    case eControls::UP:
+      return eDirection::UP;
+    case eControls::LEFT:
+      return eDirection::LEFT;
+    case eControls::DOWN:
+      return eDirection::DOWN;
+    case eControls::RIGHT:
+      return eDirection::RIGHT;
+    default:
+      return eDirection::NONE;
   }
 }
 
 eControls KeyToControl(int key) {
   switch (key) {
-  case terminal::kKeyArrowUp:
-    return eControls::UP;
+    case terminal::kKeyArrowUp:
+      return eControls::UP;
 
-  case terminal::kKeyArrowLeft:
-    return eControls::LEFT;
+    case terminal::kKeyArrowLeft:
+      return eControls::LEFT;
 
-  case terminal::kKeyArrowDown:
-    return eControls::DOWN;
+    case terminal::kKeyArrowDown:
+      return eControls::DOWN;
 
-  case terminal::kKeyArrowRight:
-    return eControls::RIGHT;
+    case terminal::kKeyArrowRight:
+      return eControls::RIGHT;
 
-  case ' ':
-    return eControls::WAIT;
+    case ' ':
+      return eControls::WAIT;
 
-  case 'a':
-    return eControls::ACTION;
+    case 'a':
+      return eControls::ACTION;
 
-  case '\n':
-  case '\r':
-    return eControls::ENTER;
+    case '\n':
+    case '\r':
+      return eControls::ENTER;
 
-  case 'h':
-    return eControls::HELP;
+    case 'h':
+      return eControls::HELP;
 
-  case terminal::kKeyEscape:
-  case 'Q':
-  case 'q':
-    return eControls::QUIT;
+    case terminal::kKeyEscape:
+    case 'Q':
+    case 'q':
+      return eControls::QUIT;
 
-  case 'r':
-    return eControls::RESET;
+    case 'r':
+      return eControls::RESET;
 
-  default:
-    return eControls::UNKNOWN;
+    case '!':
+      return eControls::HARD_QUIT;
+
+    default:
+      return eControls::UNKNOWN;
   }
 }
 
@@ -139,9 +146,9 @@ SelectMagic(abstract_game_area::AbstractGameArena *game,
   }
 }*/
 
-std::optional<Vector2i>
-SelectTarget(abstract_game_area::AbstractGameArena *game, Vector2i pos,
-             int non_passable_tag, int max_dist) {
+std::optional<Vector2i> SelectTarget(
+    abstract_game_area::AbstractGameArena *game, Vector2i pos,
+    int non_passable_tag, int max_dist) {
   Vector2i target = pos;
   target.x++;
   while (true) {
@@ -151,15 +158,14 @@ SelectTarget(abstract_game_area::AbstractGameArena *game, Vector2i pos,
     bool hit = false;
     game->map().IterateLine(pos, target, [&](const Vector2i &p) {
       if (p != pos) {
-
         auto &cell = game->map().cell(p);
         if (cell.HasTag(common_game::Tag::WALL_LIKE)) {
           hit = true;
         }
 
-        terminal::DrawSymbol(p.x, p.y, 256 + 3,
-                             hit ? terminal::eColor::RED
-                                 : terminal::eColor::GREEN);
+        terminal::DrawSymbol(
+            p.x, p.y, 256 + 3,
+            hit ? terminal::eColor::RED : terminal::eColor::GREEN);
       }
       return true;
     });
@@ -176,25 +182,25 @@ SelectTarget(abstract_game_area::AbstractGameArena *game, Vector2i pos,
       control = KeyToControl(key);
 
       switch (control) {
-      case eControls::QUIT:
-        return {};
+        case eControls::QUIT:
+          return {};
 
-      case eControls::ACTION:
-      case eControls::ENTER:
-        return target;
-        break;
+        case eControls::ACTION:
+        case eControls::ENTER:
+          return target;
+          break;
 
-      case eControls::UP:
-      case eControls::LEFT:
-      case eControls::DOWN:
-      case eControls::RIGHT:
-        auto candidate = target + Vector2i(ControlToDirection(control));
-        if (game->map().Contains(candidate) &&
-            (pos - candidate).MaxLength() <= max_dist) {
-          target = candidate;
-          has_action = true;
-        }
-        break;
+        case eControls::UP:
+        case eControls::LEFT:
+        case eControls::DOWN:
+        case eControls::RIGHT:
+          auto candidate = target + Vector2i(ControlToDirection(control));
+          if (game->map().Contains(candidate) &&
+              (pos - candidate).MaxLength() <= max_dist) {
+            target = candidate;
+            has_action = true;
+          }
+          break;
       }
       if (has_action) {
         break;
@@ -235,7 +241,6 @@ void ShowHelp() {
             });
 
   for (const auto &display : display_entities) {
-
     terminal::DrawSymbol(ui_x, ui_y, display.symbol.symbol_,
                          display.symbol.color);
     terminal::DrawString(ui_x + 1, ui_y++,
@@ -332,7 +337,7 @@ bool RunArea(const MapInfo &map) {
                   SelectTarget(game, controlled->position(),
                                common_game::Tag::NON_PASSABLE, a.target_radius);
               if (!target.has_value()) {
-                break; // Cancel
+                break;  // Cancel
               }
               action.action = eAction::MAGIC;
               action.magic_idx = a.idx;
@@ -363,67 +368,74 @@ bool RunArea(const MapInfo &map) {
     }
 
     switch (control) {
-    case eControls::QUIT:
-      return false;
+      case eControls::QUIT:
+        return false;
 
-    case eControls::RESET:
-      return true;
+      case eControls::RESET:
+        return true;
 
-    case eControls::WAIT:
-    case eControls::UP:
-    case eControls::LEFT:
-    case eControls::DOWN:
-    case eControls::RIGHT:
-      action.action = eAction::MOVE;
-      action.move = ControlToDirection(control);
-      has_action = true;
-      break;
+#ifndef NO_QUIT
+      case eControls::HARD_QUIT:
+        LOG(INFO) << "! was pressed -- Hard quit";
+        std::exit(0);
+        return true;
+#endif
 
-      /*
-      case eControls::ACTION: {
-        // Link to player entity.
-        auto all_controlled = game->map().ControlledEntities();
-        if (all_controlled.empty()) {
-          break;
-        }
-        auto controlled = all_controlled.front();
-        const auto magic_action = SelectMagic(game, controlled);
-        if (!magic_action.has_value()) {
-          break; // Cancel
-        }
+      case eControls::WAIT:
+      case eControls::UP:
+      case eControls::LEFT:
+      case eControls::DOWN:
+      case eControls::RIGHT:
+        action.action = eAction::MOVE;
+        action.move = ControlToDirection(control);
+        has_action = true;
+        break;
 
-        if (magic_action.value().target_radius > 0) {
-          auto target = SelectTarget(game, controlled->position(),
-                                     common_game::Tag::NON_PASSABLE,
-                                     magic_action.value().target_radius);
-          if (!target.has_value()) {
+        /*
+        case eControls::ACTION: {
+          // Link to player entity.
+          auto all_controlled = game->map().ControlledEntities();
+          if (all_controlled.empty()) {
+            break;
+          }
+          auto controlled = all_controlled.front();
+          const auto magic_action = SelectMagic(game, controlled);
+          if (!magic_action.has_value()) {
             break; // Cancel
           }
-          action.action = eAction::MAGIC;
-          action.magic_idx = magic_action.value().idx;
-          action.target = target.value();
-          has_action = true;
-          break;
 
-        } else {
-          action.action = eAction::MAGIC;
-          action.magic_idx = magic_action.value().idx;
-          has_action = true;
-          break;
-        }
-      } break;
-      */
+          if (magic_action.value().target_radius > 0) {
+            auto target = SelectTarget(game, controlled->position(),
+                                       common_game::Tag::NON_PASSABLE,
+                                       magic_action.value().target_radius);
+            if (!target.has_value()) {
+              break; // Cancel
+            }
+            action.action = eAction::MAGIC;
+            action.magic_idx = magic_action.value().idx;
+            action.target = target.value();
+            has_action = true;
+            break;
 
-    case eControls::HELP:
-      ShowHelp();
-      break;
+          } else {
+            action.action = eAction::MAGIC;
+            action.magic_idx = magic_action.value().idx;
+            has_action = true;
+            break;
+          }
+        } break;
+        */
 
-    case eControls::INTERACTION:
-    case eControls::INVENTORY:
-    case eControls::MAP:
-    case eControls::LOGS:
-      // TODO
-      break;
+      case eControls::HELP:
+        ShowHelp();
+        break;
+
+      case eControls::INTERACTION:
+      case eControls::INVENTORY:
+      case eControls::MAP:
+      case eControls::LOGS:
+        // TODO
+        break;
     }
 
     // Run action
@@ -515,36 +527,42 @@ std::optional<MapInfo> SelectMap(int selection) {
 
     for (int i = 0; i < maps.size(); i++) {
       const auto &map = maps[i];
-      print_item(i, absl::StrCat(map.name)); //, " [", map.path, "]"));
+      print_item(i, absl::StrCat(map.name));  //, " [", map.path, "]"));
     }
+
+#ifndef NO_QUIT
+    int max_select = maps.size();
     print_item(maps.size(), "Quit");
+#else
+    int max_select = maps.size() - 1;
+#endif
 
     terminal::RefreshScreen();
     auto key = terminal::GetPressedKey();
     switch (key) {
-    case terminal::kKeyArrowUp:
-      if (selection > 0) {
-        selection--;
-      }
-      break;
-    case terminal::kKeyArrowLeft:
-      break;
-    case terminal::kKeyArrowDown:
-      if (selection < maps.size()) {
-        selection++;
-      }
-      break;
-    case terminal::kKeyArrowRight:
-      break;
-    case terminal::kKeyReturn: {
-      if (selection == maps.size()) {
+      case terminal::kKeyArrowUp:
+        if (selection > 0) {
+          selection--;
+        }
+        break;
+      case terminal::kKeyArrowLeft:
+        break;
+      case terminal::kKeyArrowDown:
+        if (selection < max_select) {
+          selection++;
+        }
+        break;
+      case terminal::kKeyArrowRight:
+        break;
+      case terminal::kKeyReturn: {
+        if (selection == maps.size()) {
+          return {};
+        } else {
+          return maps[selection];
+        }
+      } break;
+      case terminal::kKeyEscape:
         return {};
-      } else {
-        return maps[selection];
-      }
-    } break;
-    case terminal::kKeyEscape:
-      return {};
     }
   }
 }
@@ -589,25 +607,46 @@ void Intro() {
 }
 
 void Main() {
-// TestKey();
+  // TestKey();
+
+  const auto flag_map = absl::GetFlag(FLAGS_map);
+
 #ifndef SKIP_INTRO
-  Intro(); // Does not always work on LINUX on Windows.
+  if (flag_map.empty()) {
+    Intro();  // Does not always work on LINUX on Windows.
+  }
 #endif
 
-  int selected_map = 0;
+  int selected_map = -1;
 
   while (true) {
-    // Select map
-    auto map_info = SelectMap(selected_map);
-    if (!map_info.has_value()) {
-      std::cout << std::endl << "Bye" << std::endl;
-      return;
+    MapInfo map;
+    if (selected_map == -1) {
+      if (flag_map.empty()) {
+        selected_map = 0;
+        continue;
+      }
+      map.path = flag_map;
+      map.name = "manual";
+      map.format = "TMX";
+    } else {
+      // Select map
+      auto map_info = SelectMap(selected_map);
+      if (!map_info.has_value()) {
+#ifdef NO_QUIT
+        continue;
+#else
+        std::cout << std::endl << "Bye" << std::endl;
+        return;
+#endif
+      }
+      map = map_info.value();
+      selected_map = map.idx;
     }
-    selected_map = map_info.value().idx;
 
     // Play map
     while (true) {
-      const auto reset = RunArea(map_info.value());
+      const auto reset = RunArea(map);
       if (!reset) {
         break;
       }
@@ -615,10 +654,9 @@ void Main() {
   }
 }
 
-} // namespace exploratron
+}  // namespace exploratron
 
 int main(int argc, char **argv) {
-
 #ifdef SHOW_STACK_TRACE_IF_ABORT
   absl::InitializeSymbolizer(argv[0]);
   absl::FailureSignalHandlerOptions options;

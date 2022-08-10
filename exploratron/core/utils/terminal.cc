@@ -31,11 +31,11 @@ char symbols[][kNumChars] = {
     "@",    // Player // \x02
     "\x04", // Cursor
     "\xCD", // Horizontal bar
-    "¤",    // Button
-    "\26",  // right
-    "\25",  // down
-    "\27",  // left
-    "\24"   // up
+    "\xC1",    // Button
+    "\x10",  // right
+    "\x1F",  // down
+    "\x11",  // left
+    "\x1E"   // up
 };
 
 #elif defined(TERMINAL_LINUX_CONSOLE) || defined(TERMINAL_WASM_CONSOLE)
