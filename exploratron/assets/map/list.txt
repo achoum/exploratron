@@ -1,4 +1,5 @@
 tutorial.tmx	TMX	Tutorial
 anthill_2.tmx	TMX	Anthill
 factory_2.tmx	TMX	Factory
-robot_city.tmx	TMX	Robot city
+robot_city_1.tmx	TMX	Robot city 1
+robot_city_2.tmx	TMX	Robot city 2
