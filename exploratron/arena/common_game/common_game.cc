@@ -192,7 +192,17 @@ void InitializeFromTmx(
   CHECK(map);
   auto width = map->IntAttribute("width");
   auto height = map->IntAttribute("height");
+
+  if (width > 67) {
+    LOG(INFO) << "Map's width is greater than 67";
+  }
+  if (height > 44) {
+    LOG(INFO) << "Map's height is greater than 44";
+  }
+
   arena->Initialize({width, height});
+
+  LOG(INFO) << "Load map " << path << " with size " << width << " x " << height;
 
   {
     auto *cur_layer = map->FirstChildElement("layer");
@@ -217,7 +227,9 @@ void InitializeFromTmx(
             const int symbol = std::stoi(csv_col);
             // Tiled index the symbols starting at 1.
             if (symbol > 0) {
-              builder({col_idx, row_idx}, symbol - 1, {});
+              if (col_idx < width && row_idx < height) {
+                builder({col_idx, row_idx}, symbol - 1, {});
+              }
             }
           }
           col_idx++;
@@ -241,21 +253,24 @@ void InitializeFromTmx(
         CHECK(x >= 0);
         CHECK(y >= 0);
 
-        std::string message;
-        auto *cur_properties = cur_object->FirstChildElement("properties");
-        CHECK(cur_properties);
-        auto *cur_property = cur_properties->FirstChildElement("property");
-        while (cur_property != nullptr) {
-          auto *raw_name = cur_property->Attribute("name");
-          auto *raw_value = cur_property->Attribute("value");
-          if (std::strcmp(raw_name, "message") == 0) {
-            message = raw_value;
-          }
+        if (x < width * 16 & y < height * 16) {
+          std::string message;
+          auto *cur_properties = cur_object->FirstChildElement("properties");
+          CHECK(cur_properties);
+          auto *cur_property = cur_properties->FirstChildElement("property");
+          while (cur_property != nullptr) {
+            auto *raw_name = cur_property->Attribute("name");
+            auto *raw_value = cur_property->Attribute("value");
+            if (std::strcmp(raw_name, "message") == 0) {
+              message = raw_value;
+            }
 
-          cur_property = cur_property->NextSiblingElement("property");
+            cur_property = cur_property->NextSiblingElement("property");
+          }
+          message = absl::StrReplaceAll(message, {{"\\n", "\n"}});
+
+          builder({x / 16, y / 16 - 1}, gid - 1, message);
         }
-        message = absl::StrReplaceAll(message, {{"\\n", "\n"}});
-        builder({x / 16, y / 16 - 1}, gid - 1, message);
 
         cur_object = cur_object->NextSiblingElement("object");
       }
@@ -802,12 +817,13 @@ void Pheromone::Step(Output action, std::shared_ptr<Entity> me, Map *map) {
 
 std::vector<int> Explosive::Tags() const {
   if (active_) {
-    return {Tag::FIRE_TARGET, Tag::EXPLOSION_TARGET,
+    return {Tag::FIRE_TARGET, Tag::EXPLOSION_TARGET, Tag::LASER_TARGET,
             Tag::MOVED_BY_CONVEYOR_BELT, Tag::KILLED_BY_AUTOMATIC_METAL_DOOR};
   } else {
     return {
         Tag::FIRE_TARGET,
         Tag::EXPLOSION_TARGET,
+        Tag::LASER_TARGET,
         Tag::ITEM,
         Tag::MOVED_BY_CONVEYOR_BELT,
         Tag::KILLED_BY_AUTOMATIC_METAL_DOOR,
@@ -849,10 +865,12 @@ void Explosive::Explode(std::shared_ptr<Entity> me, Map *map) {
 
 DisplaySymbol Explosive::Display() const {
   if (active_) {
-    return DisplaySymbol{std::to_string(left_)[0], 90,
-                         .color = terminal::eColor::YELLOW};
+    return DisplaySymbol{terminal::eSymbol::NOTHING, 90,
+                         .color = terminal::eColor::YELLOW,
+                         .character = std::to_string(left_)[0]};
   } else {
-    return DisplaySymbol{'x', 40, .color = terminal::eColor::GREEN};
+    return DisplaySymbol{terminal::eSymbol::EXPLOSIVE_ITEM, 40,
+                         .color = terminal::eColor::GREEN};
   }
 }
 
@@ -921,10 +939,12 @@ bool ExplosiveBarel::Hurt(int amount, std::shared_ptr<Entity> emiter,
 
 DisplaySymbol ExplosiveBarel::Display() const {
   if (active_) {
-    return DisplaySymbol{std::to_string(left_)[0], 90,
-                         .color = terminal::eColor::YELLOW};
+    return DisplaySymbol{terminal::eSymbol::NOTHING, 90,
+                         .color = terminal::eColor::YELLOW,
+                         .character = std::to_string(left_)[0]};
   } else {
-    return DisplaySymbol{'X', 50, .color = terminal::eColor::GREEN};
+    return DisplaySymbol{terminal::eSymbol::BARREL, 50,
+                         .color = terminal::eColor::GREEN};
   }
 }
 
@@ -972,8 +992,9 @@ void ConveyorBelt::Step(Output action, std::shared_ptr<Entity> me, Map *map) {
 }
 
 DisplaySymbol ConveyorBelt::Display() const {
-  return DisplaySymbol{256 + 6 + direction_ - 1, 1,
-                       .color = terminal::eColor::GRAY};
+  return DisplaySymbol{
+      (terminal::eSymbol)((int)terminal::eSymbol::ARROW_RIGHT + direction_ - 1),
+      1, .color = terminal::eColor::GRAY};
 }
 
 void SendSignal(Vector2i pos, Map *map, int signal) {
@@ -1010,6 +1031,7 @@ void SendSignal(Vector2i pos, Map *map, int signal) {
 }
 
 void Button::ReceiveSignal(int signal, std::shared_ptr<Entity> me, Map *map) {
+  state ^= true;
   SendSignal(me->position(), map, SignalType::RECEIVE_ELETRICITY);
 }
 
@@ -1083,7 +1105,7 @@ bool Laser::TestPos(const Vector2i &pos, std::shared_ptr<Entity> me, Map *map) {
 
   bool stopped = false;
   for (const auto &e : cell.entities_) {
-    if (e->HasTag(Tag::ROBOT_TARGET)) {
+    if (e->HasTag(Tag::LASER_TARGET)) {
       e->Hurt(2, me, e, map);
       stopped = true;
     }
@@ -1100,6 +1122,10 @@ bool Laser::TestPos(const Vector2i &pos, std::shared_ptr<Entity> me, Map *map) {
 }
 
 void Laser::Step(Output action, std::shared_ptr<Entity> me, Map *map) {
+  if (!TestPos(position(), me, map)) {
+    map->RemoveEntity(me);
+    return;
+  }
   Vector2i dir(dir_);
   Vector2i new_pos = position() + dir;
   if (TestPos(new_pos, me, map)) {
@@ -1110,8 +1136,10 @@ void Laser::Step(Output action, std::shared_ptr<Entity> me, Map *map) {
 }
 
 DisplaySymbol Laser::Display() const {
-  return DisplaySymbol{(dir_ == 1 || dir_ == 3) ? '-' : '|', 30,
-                       .color = terminal::eColor::YELLOW};
+  return DisplaySymbol{(dir_ == 1 || dir_ == 3)
+                           ? terminal::eSymbol::LASER_LEFT_RIGHT
+                           : terminal::eSymbol::LASER_UP_DOWN,
+                       30, .color = terminal::eColor::YELLOW};
 }
 
 void Turret::Step(Output action, std::shared_ptr<Entity> me, Map *map) {
@@ -1359,11 +1387,11 @@ bool Goliat::Hurt(int amount, std::shared_ptr<Entity> emiter,
 }
 
 DisplaySymbol Worm::Display() const {
-  char symbol = 'o';
+  terminal::eSymbol symbol = terminal::eSymbol::WORM_BODY;
   if (dir_[0] == 0) {
-    symbol = 'W';
+    symbol = terminal::eSymbol::WORM_HEAD;
   } else if (dir_[1] == 0) {
-    symbol = '.';
+    symbol = terminal::eSymbol::WORM_TAIL;
   }
   return DisplaySymbol{symbol, 50, .color = terminal::eColor::YELLOW};
 }

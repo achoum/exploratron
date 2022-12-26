@@ -53,6 +53,13 @@ enum class eControls {
   HARD_QUIT,
 };
 
+enum class eFinishFollowup {
+  RETRY,
+  NEXT,
+  QUIT,
+  _NUM_OPTIONS,
+};
+
 eDirection ControlToDirection(const eControls a) {
   switch (a) {
     case eControls::WAIT:
@@ -164,8 +171,8 @@ std::optional<Vector2i> SelectTarget(
         }
 
         terminal::DrawSymbol(
-            p.x, p.y, 256 + 3,
-            hit ? terminal::eColor::RED : terminal::eColor::GREEN);
+            p.x, p.y, hit ? terminal::eSymbol::CURSOR_HIT : terminal::eSymbol::CURSOR/*,
+            hit ? terminal::eColor::RED : terminal::eColor::GREEN*/);
       }
       return true;
     });
@@ -229,7 +236,8 @@ void ShowHelp() {
     if (!display.help_) {
       continue;
     }
-    if (display.symbol_ == ' ') {
+    if (display.symbol_ == terminal::eSymbol::NOTHING &&
+        display.character != -1) {
       continue;
     }
     display_entities.push_back({display, entity});
@@ -241,11 +249,20 @@ void ShowHelp() {
             });
 
   for (const auto &display : display_entities) {
-    terminal::DrawSymbol(ui_x, ui_y, display.symbol.symbol_,
-                         display.symbol.color);
-    terminal::DrawString(ui_x + 1, ui_y++,
-                         absl::StrFormat(" %s. %s", display.entity->Name(),
-                                         display.entity->status()));
+    terminal::DrawSymbol(ui_x, ui_y, terminal::eSymbol::NOTHING);
+    if (display.symbol.character != -1) {
+      terminal::DrawCharacter(ui_x, ui_y, display.symbol.character,
+                              display.symbol.color);
+    } else {
+      terminal::DrawSymbol(ui_x, ui_y, display.symbol.symbol_);
+    }
+    const int offset =
+        terminal::DrawString(ui_x + 2, ui_y, display.entity->Name());
+
+    terminal::DrawString(ui_x + 1 + offset + 3, ui_y, display.entity->status(),
+                         terminal::eColor::GRAY);
+    ui_y++;
+
     // (%d)
     //  display.symbol.priotity_
   }
@@ -292,7 +309,84 @@ void PrintFinalScreen(abstract_game_area::AbstractGameArena *game) {
   }
 }
 
-bool RunArea(const MapInfo &map) {
+eFinishFollowup PrintFinalScreen2(abstract_game_area::AbstractGameArena *game,
+                                  const MapInfo &map) {
+  int option = 0;
+
+  while (true) {
+    terminal::ClearScreen();
+
+    int hp = -1;
+    auto all_controlled = game->map().ControlledEntities();
+    if (!all_controlled.empty()) {
+      hp = all_controlled.front()->hp();
+    }
+    int delta_x;
+    int y = 1;
+    int x = 2;
+
+    terminal::DrawString(x, y, "You reached the exit!",
+                         terminal::eColor::YELLOW);
+
+    y = 3;
+    delta_x = terminal::DrawString(x, y, "Map:", terminal::eColor::WHITE);
+    terminal::DrawString(x + delta_x + 1, y, map.name,
+                         terminal::eColor::VIOLET);
+
+    y += 5;
+    terminal::DrawString(x, y, "Your time");
+    delta_x = terminal::DrawString(x + 2, y + 1, "Steps:") + 1;
+    terminal::DrawString(x + 2, y + 2, "HP:");
+    terminal::DrawString(x + delta_x + 2, y + 1,
+                         absl::StrCat(game->map().time()),
+                         terminal::eColor::GREEN);
+    terminal::DrawString(x + delta_x + 2, y + 2, absl::StrCat(hp),
+                         terminal::eColor::RED);
+
+    x = 15;
+    terminal::DrawString(x, y, "Your best time");
+    terminal::DrawString(x + 2, y + 1, "Steps:");
+    terminal::DrawString(x + 2, y + 2, "HP:");
+    terminal::DrawString(x + 2 + delta_x, y + 1, "NA", terminal::eColor::GREEN);
+    terminal::DrawString(x + 2 + delta_x, y + 2, "NA", terminal::eColor::RED);
+
+    y += 5;
+    x = 1;
+    terminal::DrawString(x, y, "Options");
+    terminal::DrawString(x + 2, y + 1, "[   ] Try again");
+    terminal::DrawString(x + 2, y + 2, "[   ] Next world");
+    terminal::DrawString(x + 2, y + 3, "[   ] Quit");
+
+    terminal::DrawSymbol(x + 3, y + 1 + option, terminal::eSymbol::CURSOR);
+
+    terminal::RefreshScreen();
+
+    auto key = terminal::GetPressedKey();
+    switch (key) {
+      case terminal::kKeyArrowUp:
+        if (option > 0) {
+          option--;
+        }
+        break;
+      case terminal::kKeyArrowLeft:
+        break;
+      case terminal::kKeyArrowDown:
+        if (option < (int)eFinishFollowup::_NUM_OPTIONS - 1) {
+          option++;
+        }
+        break;
+      case terminal::kKeyArrowRight:
+        break;
+      case terminal::kKeyReturn:
+        return (eFinishFollowup)option;
+        break;
+      case terminal::kKeyEscape:
+        return eFinishFollowup::QUIT;
+    }
+  }
+}
+
+eFinishFollowup RunArea(const MapInfo &map) {
   const auto arena_builder = AbstractArenaBuilderRegisterer::Create("Ant");
   buffer::BufferInput buffer_input;
   const auto controller_builder =
@@ -305,6 +399,9 @@ bool RunArea(const MapInfo &map) {
   auto *game =
       dynamic_cast<abstract_game_area::AbstractGameArena *>(area.get());
   DCHECK(game);
+
+  // DEBUG
+  // return PrintFinalScreen2(game, map);
 
   // Run area.
   while (true) {
@@ -369,16 +466,16 @@ bool RunArea(const MapInfo &map) {
 
     switch (control) {
       case eControls::QUIT:
-        return false;
+        return eFinishFollowup::QUIT;
 
       case eControls::RESET:
-        return true;
+        return eFinishFollowup::RETRY;
 
 #ifndef NO_QUIT
       case eControls::HARD_QUIT:
         LOG(INFO) << "! was pressed -- Hard quit";
         std::exit(0);
-        return true;
+        return eFinishFollowup::QUIT;
 #endif
 
       case eControls::WAIT:
@@ -442,7 +539,6 @@ bool RunArea(const MapInfo &map) {
     if (has_action) {
       buffer_input.Add(action);
       if (!area->Step()) {
-        PrintFinalScreen(game);
         break;
       }
     }
@@ -452,7 +548,9 @@ bool RunArea(const MapInfo &map) {
   terminal::ClearScreen();
   area->Draw();
   terminal::RefreshScreen();
-  return false;
+
+  // Next action.
+  return PrintFinalScreen2(game, map);
 }
 
 std::vector<MapInfo> ListMaps() {
@@ -472,9 +570,9 @@ std::vector<MapInfo> ListMaps() {
   return maps;
 }
 
-std::optional<MapInfo> SelectMap(int selection) {
+std::optional<MapInfo> SelectMap(const std::vector<MapInfo> &maps,
+                                 int selection) {
   terminal::RefreshScreen();
-  const auto maps = ListMaps();
   while (true) {
     terminal::ClearScreen();
 
@@ -482,9 +580,17 @@ std::optional<MapInfo> SelectMap(int selection) {
     int ui_y = 1;
 
     auto print_item = [&](int item_idx, std::string text) {
-      terminal::DrawString(ui_x, ui_y, absl::StrCat("[ ] ", text));
+      terminal::DrawString(ui_x, ui_y, absl::StrCat("[   ] ", text));
       if (item_idx == selection) {
-        terminal::DrawSymbol(ui_x + 1, ui_y, 256 + 3, terminal::eColor::RED);
+        // terminal::DrawString(ui_x + 1, ui_y, "x");
+
+        terminal::DrawSymbol(ui_x + 1, ui_y, terminal::eSymbol::CURSOR);
+
+        /*
+        terminal::DrawSymbol(
+            ui_x + 1, ui_y,
+            terminal::eSymbol::CURSOR_HIT );
+            */
       }
       ui_y++;
     };
@@ -569,7 +675,7 @@ std::optional<MapInfo> SelectMap(int selection) {
 
 void TestKey() {
   while (true) {
-    int a = terminal::GetPressedKeyRaw();
+    int a = terminal::GetPressedKey();
     std::cout << a << std::endl;
     if (a == 3) {
       break;
@@ -595,7 +701,8 @@ void Intro() {
                         character_ratio;
         int d = frame;
         if (dist2 > d * d) {
-          terminal::DrawSymbol(x, y, 256 + 0, terminal::eColor::RED);
+          terminal::DrawSymbol(
+              x, y, terminal::eSymbol::WALL /*,  terminal::eColor::RED*/);
         }
       }
     }
@@ -611,43 +718,63 @@ void Main() {
 
   const auto flag_map = absl::GetFlag(FLAGS_map);
 
-#ifndef SKIP_INTRO
-  if (flag_map.empty()) {
-    Intro();  // Does not always work on LINUX on Windows.
-  }
-#endif
+  /*
+  #ifndef SKIP_INTRO
+    if (flag_map.empty()) {
+      Intro();  // Does not always work on LINUX on Windows.
+    }
+  #endif
+  */
 
-  int selected_map = -1;
+  const auto maps = ListMaps();
+  int selected_map;
+  bool skip_select_map = false;
+  if (flag_map.empty()) {
+    selected_map = 0;
+  } else {
+    selected_map = -1;
+  }
 
   while (true) {
+    // Select map
     MapInfo map;
     if (selected_map == -1) {
-      if (flag_map.empty()) {
-        selected_map = 0;
-        continue;
-      }
       map.path = flag_map;
       map.name = "manual";
       map.format = "TMX";
     } else {
-      // Select map
-      auto map_info = SelectMap(selected_map);
-      if (!map_info.has_value()) {
+      if (!skip_select_map) {
+        // Select map
+        auto map_info = SelectMap(maps, selected_map);
+        if (!map_info.has_value()) {
 #ifdef NO_QUIT
-        continue;
+          continue;
 #else
-        std::cout << std::endl << "Bye" << std::endl;
-        return;
+          std::cout << std::endl << "Bye" << std::endl;
+          return;
 #endif
+        }
+        map = map_info.value();
+        selected_map = map.idx;
+      } else {
+        CHECK(selected_map < maps.size());
+        CHECK(selected_map >= 0);
+        map = maps[selected_map];
+        skip_select_map = false;
       }
-      map = map_info.value();
-      selected_map = map.idx;
     }
 
     // Play map
     while (true) {
-      const auto reset = RunArea(map);
-      if (!reset) {
+      const auto next_action = RunArea(map);
+      if (next_action == eFinishFollowup::QUIT) {
+        break;
+      }
+      if (next_action == eFinishFollowup::NEXT) {
+        if (selected_map < maps.size() - 2) {
+          selected_map++;
+          skip_select_map = true;
+        }
         break;
       }
     }

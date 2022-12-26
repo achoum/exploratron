@@ -110,10 +110,12 @@ enum Tag {
   KILLED_BY_AUTOMATIC_METAL_DOOR,
   // Targeted by robots
   ROBOT_TARGET,
-  // Targeted by worms
+  // Targeted by robots
+  LASER_TARGET,
+  // Targeted by laser
   WORM_TARGET,
   // Hurt target by hand is not target without low priority are found.
-  WORM_LOW_PRIORITY
+  WORM_LOW_PRIORITY,
 };
 
 class UnbreakableWall : public Entity {
@@ -121,7 +123,7 @@ class UnbreakableWall : public Entity {
   int type() const override { return EntityType::UNBREAKABLE_WALL; }
   std::string Name() const override { return "unbreakable wall"; }
   DisplaySymbol Display() const override {
-    return DisplaySymbol{256 + 0, 40, .help_ = false,
+    return DisplaySymbol{terminal::eSymbol::WALL, 40, .help_ = false,
                          .color = terminal::eColor::GRAY};
   }
   std::vector<int> Tags() const override {
@@ -135,7 +137,8 @@ class SteelWall : public Entity {
   int type() const override { return EntityType::STEEL_WALL; }
   std::string Name() const override { return "steel wall"; }
   DisplaySymbol Display() const override {
-    return DisplaySymbol{256 + 0, 40, .color = terminal::eColor::BLUE};
+    return DisplaySymbol{terminal::eSymbol::STEEL_WALL, 40,
+                         .color = terminal::eColor::BLUE};
   }
   std::vector<int> Tags() const override {
     return {Tag::WALL_LIKE, Tag::NON_PASSABLE, Tag::NON_PASSABLE_WORM};
@@ -148,7 +151,8 @@ class Wall : public Entity {
   int type() const override { return EntityType::WALL; }
   std::string Name() const override { return "wall"; }
   DisplaySymbol Display() const override {
-    return DisplaySymbol{256 + 0, 40, .color = terminal::eColor::GRAY};
+    return DisplaySymbol{terminal::eSymbol::WALL, 40,
+                         .color = terminal::eColor::GRAY};
   }
   std::vector<int> Tags() const override {
     return {Tag::WALL_LIKE, Tag::NON_PASSABLE, Tag::EXPLOSION_TARGET};
@@ -161,7 +165,9 @@ class SoftWall : public Entity {
   SoftWall() : Entity(2) {}
   int type() const override { return EntityType::SOFT_WALL; }
   std::string Name() const override { return "soft wall"; }
-  DisplaySymbol Display() const override { return DisplaySymbol{256 + 0, 0}; }
+  DisplaySymbol Display() const override {
+    return DisplaySymbol{terminal::eSymbol::SOFT_WALL, 0};
+  }
   std::vector<int> Tags() const override {
     return {Tag::WALL_LIKE, Tag::NON_PASSABLE, Tag::PLAYER_TARGET,
             Tag::EXPLOSION_TARGET};
@@ -174,8 +180,9 @@ class AutomaticDoor : public Entity {
   int type() const override { return EntityType::STEEL_DOOR; }
   std::string Name() const override { return "automatic door"; }
   DisplaySymbol Display() const override {
-    return DisplaySymbol{closed_ ? '+' : '-', 3,
-                         .color = terminal::eColor::BLUE};
+    return DisplaySymbol{closed_ ? terminal::eSymbol::AUTOMATIC_DOOR_CLOSED
+                                 : terminal::eSymbol::AUTOMATIC_DOOR_OPEN,
+                         3, .color = terminal::eColor::BLUE};
   }
   std::vector<int> Tags() const override {
     if (closed_) {
@@ -200,7 +207,8 @@ class Fungus : public Entity {
   int type() const override { return EntityType::FUNGUS; }
   std::string Name() const override { return "fungus"; }
   DisplaySymbol Display() const override {
-    return DisplaySymbol{'"', 0, .color = terminal::eColor::GRAY};
+    return DisplaySymbol{terminal::eSymbol::FUNGUS, 0,
+                         .color = terminal::eColor::GRAY};
   }
   std::vector<int> Tags() const override {
     return {Tag::FUNGUS_LIKE, Tag::FIRE_TARGET, Tag::FLAMABLE,
@@ -217,7 +225,9 @@ class FungusTower : public Entity {
  public:
   std::string Name() const override { return "fungus tower"; }
   int type() const override { return EntityType::FUNGUS_TOWER; }
-  DisplaySymbol Display() const override { return DisplaySymbol{'f', 0}; }
+  DisplaySymbol Display() const override {
+    return DisplaySymbol{terminal::eSymbol::FUNGUS_TOWER, 0};
+  }
   std::vector<int> Tags() const override {
     return {Tag::PLAYER_TARGET,
             Tag::FUNGUS_LIKE,
@@ -236,7 +246,8 @@ class Ant : public Entity {
   int type() const override { return EntityType::ANT; }
   std::string Name() const override { return "ant"; }
   DisplaySymbol Display() const override {
-    return DisplaySymbol{'a', 50, .color = terminal::eColor::RED};
+    return DisplaySymbol{terminal::eSymbol::ANT, 50,
+                         .color = terminal::eColor::RED};
   }
   std::vector<int> Tags() const override {
     return {
@@ -252,6 +263,7 @@ class Ant : public Entity {
         Tag::TRIGGER_PROXY_SENSOR,
         Tag::KILLED_BY_AUTOMATIC_METAL_DOOR,
         Tag::ROBOT_TARGET,
+        Tag::LASER_TARGET,
         Tag::NON_PASSABLE_WORM,
     };
   }
@@ -279,7 +291,8 @@ class AntQueen : public Entity {
   int type() const override { return EntityType::ANT_QUEEN; }
   std::string Name() const override { return "ant queen"; }
   DisplaySymbol Display() const override {
-    return DisplaySymbol{'A', 50, .color = terminal::eColor::RED};
+    return DisplaySymbol{terminal::eSymbol::ANT_QUEEN, 50,
+                         .color = terminal::eColor::RED};
   }
   std::vector<int> Tags() const override {
     return {
@@ -294,6 +307,7 @@ class AntQueen : public Entity {
         Tag::TRIGGER_PROXY_SENSOR,
         Tag::KILLED_BY_AUTOMATIC_METAL_DOOR,
         Tag::ROBOT_TARGET,
+        Tag::LASER_TARGET,
         Tag::NON_PASSABLE_WORM,
     };
   }
@@ -321,7 +335,7 @@ class PatrolRoute : public Entity {
   int type() const override { return EntityType::PATROL_ROUTE; }
   std::string Name() const override { return "patrol route"; }
   DisplaySymbol Display() const override {
-    return DisplaySymbol{' ', -1000, .help_ = false};
+    return DisplaySymbol{terminal::eSymbol::NOTHING, -1000, .help_ = false};
   }
   std::vector<int> Tags() const override { return {}; }
 };
@@ -333,15 +347,22 @@ class Player : public Entity {
   int type() const override { return EntityType::PLAYER; }
   std::string Name() const override { return "player"; }
   DisplaySymbol Display() const override {
-    return DisplaySymbol{256 + 2, 100, .color = terminal::eColor::VIOLET};
+    return DisplaySymbol{terminal::eSymbol::PLAYER, 100,
+                         .color = terminal::eColor::VIOLET};
   }  // @
   std::vector<int> Tags() const override {
     return {
-        Tag::NON_PASSABLE,         Tag::ANT_TARGET,
-        Tag::FUNGUS_TARGET,        Tag::FIRE_TARGET,
-        Tag::EXPLOSION_TARGET,     Tag::MOVED_BY_CONVEYOR_BELT,
-        Tag::TRIGGER_PROXY_SENSOR, Tag::KILLED_BY_AUTOMATIC_METAL_DOOR,
-        Tag::ROBOT_TARGET,         Tag::NON_PASSABLE_WORM,
+        Tag::NON_PASSABLE,
+        Tag::ANT_TARGET,
+        Tag::FUNGUS_TARGET,
+        Tag::FIRE_TARGET,
+        Tag::EXPLOSION_TARGET,
+        Tag::MOVED_BY_CONVEYOR_BELT,
+        Tag::TRIGGER_PROXY_SENSOR,
+        Tag::KILLED_BY_AUTOMATIC_METAL_DOOR,
+        Tag::ROBOT_TARGET,
+        Tag::LASER_TARGET,
+        Tag::NON_PASSABLE_WORM,
         Tag::WORM_TARGET,
     };
   }
@@ -379,7 +400,8 @@ class Water : public Entity {
   int type() const override { return EntityType::WATER; }
   std::string Name() const override { return "water"; }
   DisplaySymbol Display() const override {
-    return DisplaySymbol{'~', 10, .color = terminal::eColor::BLUE};
+    return DisplaySymbol{terminal::eSymbol::WATER, 10,
+                         .color = terminal::eColor::BLUE};
   }
   std::vector<int> Tags() const override { return {Tag::EXPLOSION_TARGET}; }
   void Step(Output action, std::shared_ptr<Entity> me, Map *map) override;
@@ -394,7 +416,8 @@ class Fire : public Entity {
   int type() const override { return EntityType::FIRE; }
   std::string Name() const override { return "fire"; }
   DisplaySymbol Display() const override {
-    return DisplaySymbol{'^', 40, .color = terminal::eColor::YELLOW};
+    return DisplaySymbol{terminal::eSymbol::FIRE, 40,
+                         .color = terminal::eColor::YELLOW};
   }
   std::vector<int> Tags() const override {
     return {
@@ -411,7 +434,8 @@ class Food : public Entity {
   int type() const override { return EntityType::FOOD; }
   std::string Name() const override { return "food"; }
   DisplaySymbol Display() const override {
-    return DisplaySymbol{'f', 20, .color = terminal::eColor::GREEN};
+    return DisplaySymbol{terminal::eSymbol::FOOD, 20,
+                         .color = terminal::eColor::GREEN};
   }
   std::vector<int> Tags() const override {
     return {
@@ -440,7 +464,8 @@ class ExitDoor : public Entity {
   int type() const override { return EntityType::EXIT_DOOR; }
   std::string Name() const override { return "exit stairs"; }
   DisplaySymbol Display() const override {
-    return DisplaySymbol{'>', 10, .color = terminal::eColor::GREEN};
+    return DisplaySymbol{terminal::eSymbol::EXIT_STAIRS, 10,
+                         .color = terminal::eColor::GREEN};
   }
   std::vector<int> Tags() const override {
     return {Tag::MOVED_BY_CONVEYOR_BELT};
@@ -454,7 +479,9 @@ class Pheromone : public Entity {
   Pheromone(eDirection dir) : dir_(dir) {}
   int type() const override { return EntityType::PHEROMONE; }
   std::string Name() const override { return "pheromone"; }
-  DisplaySymbol Display() const override { return DisplaySymbol{'\'', 0}; }
+  DisplaySymbol Display() const override {
+    return DisplaySymbol{terminal::eSymbol::PHEROMONE, 0};
+  }
   std::vector<int> Tags() const override {
     return {Tag::FIRE_TARGET, Tag::EXPLOSION_TARGET};
   }
@@ -492,7 +519,7 @@ class Explosion : public Entity {
   int type() const override { return EntityType::EXPLOSION; }
   std::string Name() const override { return "explosion"; }
   DisplaySymbol Display() const override {
-    return DisplaySymbol{'*', 10, .help_ = false,
+    return DisplaySymbol{terminal::eSymbol::EXPLOSION, 10, .help_ = false,
                          .color = terminal::eColor::YELLOW};
   }
   std::vector<int> Tags() const override { return {}; }
@@ -504,7 +531,9 @@ class Boulder : public Entity {
  public:
   int type() const override { return EntityType::BOULDER; }
   std::string Name() const override { return "boulder"; }
-  DisplaySymbol Display() const override { return DisplaySymbol{'O', 50}; }
+  DisplaySymbol Display() const override {
+    return DisplaySymbol{terminal::eSymbol::BOULDER, 50};
+  }
   std::vector<int> Tags() const override {
     return {
         Tag::WALL_LIKE,
@@ -524,7 +553,11 @@ class Button : public Entity {
  public:
   int type() const override { return EntityType::BUTTON; }
   std::string Name() const override { return "button"; }
-  DisplaySymbol Display() const override { return DisplaySymbol{256 + 5, 50}; }
+  DisplaySymbol Display() const override {
+    return DisplaySymbol{
+        state ? terminal::eSymbol::BUTTON : terminal::eSymbol::BUTTON_SWITCHED,
+        50};
+  }
   std::vector<int> Tags() const override {
     return {
         Tag::MOVED_BY_CONVEYOR_BELT,
@@ -534,6 +567,9 @@ class Button : public Entity {
     };
   }
   void ReceiveSignal(int signal, std::shared_ptr<Entity> me, Map *map) override;
+
+ private:
+  bool state = false;  // Only used visually.
 };
 REGISTER_ENTITY(Button);
 
@@ -564,6 +600,7 @@ class ExplosiveBarel : public Entity {
         Tag::WALL_LIKE,
         Tag::NON_PASSABLE,
         Tag::FIRE_TARGET,
+        Tag::LASER_TARGET,
         Tag::EXPLOSION_TARGET,
         Tag::PUSHABLE,
         Tag::MOVED_BY_CONVEYOR_BELT,
@@ -588,8 +625,8 @@ class Wire : public Entity {
   int type() const override { return EntityType::WIRE; }
   std::string Name() const override { return "wire"; }
   DisplaySymbol Display() const override {
-    return DisplaySymbol{'.', 0, .visible_ = false, .help_ = false,
-                         .color = terminal::eColor::GRAY};
+    return DisplaySymbol{terminal::eSymbol::WIRE, 0, .visible_ = false,
+                         .help_ = false, .color = terminal::eColor::GRAY};
   }
   std::vector<int> Tags() const override { return {}; }
 };
@@ -599,7 +636,9 @@ class ProxySensor : public Entity {
  public:
   int type() const override { return EntityType::PROXY; }
   std::string Name() const override { return "proxy sensor"; }
-  DisplaySymbol Display() const override { return DisplaySymbol{'p', 50}; }
+  DisplaySymbol Display() const override {
+    return DisplaySymbol{terminal::eSymbol::PROXY_SENSOR, 50};
+  }
   std::vector<int> Tags() const override {
     return {
         Tag::MOVED_BY_CONVEYOR_BELT,
@@ -621,7 +660,9 @@ class Message : public Entity {
   Message(const std::string &message) : message_(message) {}
   int type() const override { return EntityType::MESSAGE; }
   std::string Name() const override { return "message"; }
-  DisplaySymbol Display() const override { return DisplaySymbol{'?', 0}; }
+  DisplaySymbol Display() const override {
+    return DisplaySymbol{terminal::eSymbol::MESSAGE, 0};
+  }
   std::vector<int> Tags() const override {
     return {Tag::MOVED_BY_CONVEYOR_BELT};
   }
@@ -640,7 +681,9 @@ class Turret : public Entity {
   int type() const override { return EntityType::TURRET; }
   std::string Name() const override { return "turret"; }
   DisplaySymbol Display() const override {
-    return DisplaySymbol{'t', 40,
+    return DisplaySymbol{(attack_left_ > 0) ? terminal::eSymbol::TURRET_ACTIVE
+                                            : terminal::eSymbol::TURRET,
+                         40,
                          .color = (attack_left_ > 0) ? terminal::eColor::RED
                                                      : terminal::eColor::BLUE};
   }
@@ -654,6 +697,7 @@ class Turret : public Entity {
         Tag::TRIGGER_PROXY_SENSOR,
         Tag::KILLED_BY_AUTOMATIC_METAL_DOOR,
         Tag::ANT_TARGET,
+        Tag::LASER_TARGET,
         Tag::NON_PASSABLE_WORM,
     };
   }
@@ -674,7 +718,9 @@ class Robot : public Entity {
   int type() const override { return EntityType::ROBOT; }
   std::string Name() const override { return "robot"; }
   DisplaySymbol Display() const override {
-    return DisplaySymbol{'r', 40,
+    return DisplaySymbol{(attacking_ > 0) ? terminal::eSymbol::ROBOT_ACTIVE
+                                          : terminal::eSymbol::ROBOT,
+                         40,
                          .color = (attacking_ > 0) ? terminal::eColor::RED
                                                    : terminal::eColor::BLUE};
   }
@@ -688,6 +734,7 @@ class Robot : public Entity {
         Tag::TRIGGER_PROXY_SENSOR,
         Tag::KILLED_BY_AUTOMATIC_METAL_DOOR,
         Tag::ANT_TARGET,
+        Tag::LASER_TARGET,
         Tag::WORM_TARGET,
         Tag::NON_PASSABLE_WORM,
     };
@@ -710,7 +757,9 @@ class Goliat : public Entity {
   int type() const override { return EntityType::GOLIAT; }
   std::string Name() const override { return "goliat"; }
   DisplaySymbol Display() const override {
-    return DisplaySymbol{'G', 40,
+    return DisplaySymbol{(attacking_ > 0) ? terminal::eSymbol::GOLIAT_ACTIVE
+                                          : terminal::eSymbol::GOLIAT,
+                         40,
                          .color = (attacking_ > 0) ? terminal::eColor::RED
                                                    : terminal::eColor::BLUE};
   }
@@ -724,6 +773,7 @@ class Goliat : public Entity {
         Tag::TRIGGER_PROXY_SENSOR,
         Tag::ANT_TARGET,
         Tag::WORM_TARGET,
+        Tag::LASER_TARGET,
         Tag::NON_PASSABLE_WORM,
     };
   }
@@ -772,6 +822,7 @@ class Worm : public Entity {
         Tag::TRIGGER_PROXY_SENSOR,
         Tag::KILLED_BY_AUTOMATIC_METAL_DOOR,
         Tag::ROBOT_TARGET,
+        Tag::LASER_TARGET,
         Tag::NON_PASSABLE_WORM,
     };
   }

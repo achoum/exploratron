@@ -15,6 +15,21 @@ genrule(
           "cp $(locations //exploratron/cli:game_wasm) $${OUT}/www/wasm/",
 )
 
+genrule(
+    name = "pack_game_sdl",
+    srcs = [
+        ":data",
+        "//exploratron/cli:game_wasm",
+    ],
+    outs = ["compiled_web_game_sdl"],
+    cmd = "IN=exploratron/web && " +
+          "OUT=$(RULEDIR)/compiled_web_game_sdl && " +
+          "mkdir -p $${OUT}/www/wasm && " +
+          "cp -R $${IN}/start_server.sh $${OUT}/ && " +
+          "cp -R $${IN}/www $${OUT}/ && " +
+          "cp $(locations //exploratron/cli:game_wasm) $${OUT}/www/wasm/",
+)
+
 filegroup(
     name = "data",
     srcs = glob(["**/*"]),

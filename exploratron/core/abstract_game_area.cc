@@ -21,10 +21,39 @@ AbstractGameArena::AbstractGameArena(
 }
 
 void Map::Draw() const {
+  std::vector<DisplaySymbol> items;
+
   for (int y = 0; y < size_.y; y++) {
     for (int x = 0; x < size_.x; x++) {
       const auto &c = cell({x, y});
-      DisplaySymbol cell_display{' ', -10000};
+      DisplaySymbol cell_display{terminal::eSymbol::NOTHING, -10000};
+
+      terminal::DrawSymbol(x, y, terminal::eSymbol::NOTHING);
+
+      items.clear();
+      for (const auto &e : c.entities_) {
+        const auto item = e->Display();
+        if (item.visible_) {
+          items.push_back(item);
+        }
+      }
+
+      std::sort(items.begin(), items.end(),
+                [](const auto &a, const auto &b) -> bool {
+                  return a.priotity_ < b.priotity_;
+                });
+
+      for (const auto &item : items) {
+        if (item.symbol_ == terminal::eSymbol::NOTHING) {
+          if (item.character != -1) {
+            terminal::DrawCharacter(x, y, item.character, item.color);
+          }
+        } else {
+          terminal::DrawSymbol(x, y, item.symbol_);
+        }
+      }
+
+      /*
       for (const auto &e : c.entities_) {
         const auto ent_display = e->Display();
         if (!ent_display.visible_) {
@@ -34,7 +63,16 @@ void Map::Draw() const {
           cell_display = ent_display;
         }
       }
-      terminal::DrawSymbol(x, y, cell_display.symbol_, cell_display.color);
+
+      if (cell_display.symbol_ == terminal::eSymbol::NOTHING) {
+        if (cell_display.character != -1) {
+          terminal::DrawCharacter(x, y, cell_display.character,
+                                  cell_display.color);
+        }
+      } else {
+        terminal::DrawSymbol(x, y, cell_display.symbol_);
+      }
+      */
     }
   }
 }
@@ -327,12 +365,16 @@ void AbstractGameArena::Draw() const {
   DCHECK(map_);
   map_->Draw();
 
-  int ui_x = map_->size_.x + 1;
+  // int ui_x = map_->size_.x + 1;
+
+  int ui_x = 67;
+  int ui_w = 13;  // 20
+
   int ui_y = 0;
   int offset_content = 0;
 
   // Stats
-  terminal::DrawTitleBar(ui_x, ui_y++, 20, "Stats", terminal::eColor::BLUE);
+  terminal::DrawTitleBar(ui_x, ui_y++, ui_w, "Stats", terminal::eColor::BLUE);
   const auto contolled = map_->ControlledEntities();
   DCHECK_LE(contolled.size(), 1);
 
@@ -354,7 +396,7 @@ void AbstractGameArena::Draw() const {
   // Console.
   ui_y++;
   const int to_display = 8;
-  terminal::DrawTitleBar(ui_x, ui_y++, 20, "Logs", terminal::eColor::BLUE);
+  terminal::DrawTitleBar(ui_x, ui_y++, ui_w, "Logs", terminal::eColor::BLUE);
   for (int i = 0; i < to_display; i++) {
     int idx = logs_.size() + i - to_display;
     if (idx >= 0) {
@@ -370,7 +412,7 @@ void AbstractGameArena::Draw() const {
 
   // Keys.
   ui_y++;
-  terminal::DrawTitleBar(ui_x, ui_y++, 20, "Actions", terminal::eColor::BLUE);
+  terminal::DrawTitleBar(ui_x, ui_y++, ui_w, "Actions", terminal::eColor::BLUE);
 
   terminal::DrawString(ui_x + offset_content, ui_y++, "arrows: move / punch");
 
@@ -477,9 +519,33 @@ bool Entity::Hurt(int amount, std::shared_ptr<Entity> emiter,
 }
 
 void AbstractGameArena::AddLog(std::string log) {
+  const int max_logsize = 26;
+
   std::vector<std::string> lines = absl::StrSplit(log, '\n');
+  std::vector<std::string> sub_lines;
+  for (auto line : lines) {
+    while (line.size() > max_logsize) {
+      // Find the cut.
+      auto cut = line.find_last_of(" ", max_logsize);
+      size_t cut2;
+      if (cut == std::string::npos) {
+        cut = max_logsize;
+        cut2 = cut;
+      } else {
+        cut2 = cut + 1;
+      }
+
+      sub_lines.push_back(line.substr(0, cut));
+      line = line.substr(cut2);
+    }
+
+    if (!line.empty()) {
+      sub_lines.push_back(line);
+    }
+  }
+
   auto time = map_ ? map_->time() : 0;
-  for (const auto &line : lines) {
+  for (const auto &line : sub_lines) {
     logs_.push_back({time, line});
   }
 }
@@ -527,7 +593,6 @@ Output Entity::GoToDirect(int blocking_tag, Vector2i dst, Map *map,
   }
   return action;
 }
-
 std::optional<Output> Entity::Patrol(int blocking_tag, int not_visible_tag,
                                      int patrol_type, Map *map) {
   Output output;

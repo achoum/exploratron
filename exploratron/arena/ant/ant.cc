@@ -17,7 +17,7 @@ namespace ant_area {
 namespace {
 // TODO
 MapDef BuildMapDefinition() { return MapDef(MatrixShape(40, 20), -1); }
-} // namespace
+}  // namespace
 
 MapDef AntArenaBuilder::MapDefinition() const { return BuildMapDefinition(); }
 
@@ -25,10 +25,9 @@ AntArena::AntArena(
     const std::vector<const AbstractControllerBuilder *> &controller_builders,
     std::string_view path)
     : AbstractGameArena(controller_builders, BuildMapDefinition()) {
-
   // common_game::InitializeFromPng("assets/map/ant_1.png",  this);
-  common_game::InitializeFromTmx(
-      absl::StrCat("exploratron/assets/map/", path), this);
+  common_game::InitializeFromTmx(absl::StrCat("exploratron/assets/map/", path),
+                                 this);
 
   /*
     map_->IterateLine( {15, 10},{5, 5}, [&](const Vector2i &p) -> bool {
@@ -55,5 +54,5 @@ bool AntArena::Step() {
   return true;
 }
 
-} // namespace ant_area
-} // namespace exploratron
+}  // namespace ant_area
+}  // namespace exploratron

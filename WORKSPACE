@@ -24,10 +24,12 @@ http_archive(
 # Emscripten
 http_archive(
     name = "emsdk",
+    # 3.1.28 3.1.18
     # strip_prefix = "emsdk-main/bazel",
     # url = "https://github.com/emscripten-core/emsdk/archive/refs/heads/main.zip",
-    strip_prefix = "emsdk-3.1.18/bazel",
-    url = "https://github.com/emscripten-core/emsdk/archive/refs/tags/3.1.18.zip",
+    strip_prefix = "emsdk-3.1.28/bazel",
+    url = "https://github.com/emscripten-core/emsdk/archive/refs/tags/3.1.28.zip",
+    #sha256 = "54ce0eec2e6cc47cab9f12de2adf34e2ee1a12ff780ce06f10eb45d54f18b3f4",
 )
 load("@emsdk//:deps.bzl", emsdk_deps = "deps")
 emsdk_deps()

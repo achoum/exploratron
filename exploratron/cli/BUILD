@@ -61,7 +61,13 @@ cc_binary(
         "-s ASYNCIFY=1",
         "--bind",
         "--embed-file exploratron/assets@exploratron/assets/",
-    ],
+    ] + select({
+        "//exploratron:terminal_sdl_wasm_console": [
+            "-s USE_SDL=2",
+            "-s USE_SDL_IMAGE=2",
+            "-s SDL2_IMAGE_FORMATS='[\"png\"]'"],
+        "//conditions:default": [],
+    }),
     deps = [":game_lib"],
 )
 
@@ -69,3 +75,4 @@ wasm_cc_binary(
     name = "game_wasm",
     cc_target = ":game_wasm.js",
 )
+

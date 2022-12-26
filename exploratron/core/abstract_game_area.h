@@ -22,12 +22,12 @@ class Map;
 class AbstractGameArena;
 
 struct DisplaySymbol {
-  int symbol_;  // The first 256 values are characters. The next ones are
-                // symbols.
+  terminal::eSymbol symbol_;
   int priotity_;
   bool visible_ = true;
   bool help_ = true;
   eColor color = terminal::eColor::WHITE;
+  int character = -1;
 };
 
 struct Action {

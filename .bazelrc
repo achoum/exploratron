@@ -1,9 +1,11 @@
 common --experimental_repo_remote_exec
+common --incompatible_remove_rule_name_parameter=false
 
 build --announce_rc
 build --noincompatible_strict_action_env
 
-build --spawn_strategy=standalone
+# sandboxed standalone local
+build --spawn_strategy=local
 build --announce_rc
 build --noincompatible_strict_action_env
 

@@ -6,8 +6,8 @@ config_setting(
 )
 
 config_setting(
-    name = "terminal_linux_console_ncuses",
-    values = {"define": "terminal=linux_console_ncuses"},
+    name = "terminal_ncuses_console",
+    values = {"define": "terminal=ncuses_console"},
 )
 
 config_setting(
@@ -18,4 +18,14 @@ config_setting(
 config_setting(
     name = "terminal_wasm_console",
     values = {"define": "terminal=wasm_console"},
+)
+
+config_setting(
+    name = "terminal_sdl_console",
+    values = {"define": "terminal=sdl_console"},
+)
+
+config_setting(
+    name = "terminal_sdl_wasm_console",
+    values = {"define": "terminal=sdl_wasm_console"},
 )

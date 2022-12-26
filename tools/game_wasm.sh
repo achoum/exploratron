@@ -3,9 +3,11 @@ set -vex
 FLAG="--config=wasm --define=terminal=wasm_console"
 
 #MODE="-c dbg"
-MODE="-c opt"
+#MODE="-c opt"
+MODE=
 
-bazel --output_base=/mnt/c/tmp/bazel build $MODE //exploratron/web:pack_game $FLAG
+# --output_base=/mnt/c/tmp/bazel 
+bazel build $MODE //exploratron/web:pack_game $FLAG
 
 # Start a local http server for the game.
 rm -fr compiled_web_game
